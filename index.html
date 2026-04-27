@@ -3,259 +3,359 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle de Horas V4 Estável</title>
+<title>Controle de Horas V3 Funcional</title>
 <style>
-body{font-family:Arial,Helvetica,sans-serif;background:#f4f4f4;margin:0;padding:20px;color:#111827}h1{margin-bottom:4px}.card{background:#fff;border-radius:12px;padding:15px;margin:12px 0;box-shadow:0 2px 8px rgba(0,0,0,.12)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.valor{font-size:24px;font-weight:bold;margin-top:6px}button{padding:9px 12px;margin:4px;border:0;border-radius:8px;background:#111827;color:#fff;font-weight:bold;cursor:pointer}button:hover{opacity:.9}.danger{background:#dc2626}.secondary{background:#e5e7eb;color:#111827}table{width:100%;border-collapse:collapse;background:#fff;margin-top:10px;min-width:1200px}th,td{border:1px solid #ddd;padding:7px;text-align:center}th{background:#f9fafb}input,select{padding:6px;width:100%;box-sizing:border-box}.wrap{overflow-x:auto}.pos{color:#047857;font-weight:bold}.neg{color:#b91c1c;font-weight:bold}.zero{color:#374151;font-weight:bold}.ok{background:#d1fae5}.erro{background:#fee2e2}.neutro{background:#e5e7eb}@media(max-width:800px){.grid{grid-template-columns:1fr}body{padding:10px}}
+body { font-family: Arial; background:#f4f4f4; padding:20px; }
+h1 { margin-bottom:5px; }
+button { padding:10px; margin:5px; cursor:pointer; border:0; border-radius:8px; background:#111827; color:white; font-weight:bold; }
+button.danger { background:#dc2626; }
+button.secondary { background:#e5e7eb; color:#111827; }
+.card { background:white; padding:15px; margin:10px 0; border-radius:12px; box-shadow:0 2px 6px #ccc; }
+.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+table { width:100%; background:white; border-collapse:collapse; margin-top:10px; min-width:1150px; }
+th, td { border:1px solid #ccc; padding:8px; text-align:center; }
+input, select { padding:6px; width:100%; box-sizing:border-box; }
+.wrap { overflow-x:auto; }
+.pos { color:green; font-weight:bold; }
+.neg { color:red; font-weight:bold; }
+.zero { color:#333; font-weight:bold; }
+@media(max-width:800px){ .grid{grid-template-columns:1fr;} body{padding:10px;} }
 </style>
 </head>
 <body>
-<h1>Controle de Horas V4 Estável</h1>
-<p>Jornada: 8h líquidas. Faixa neutra: 7h50 a 8h10. Crédito máximo: +1h por dia.</p>
+
+<h1>Controle de Horas V3 Funcional</h1>
+<p>Jornada: 8h. Faixa neutra: 7h50 a 8h10. Crédito máximo diário: +1h.</p>
 
 <div class="grid">
-  <div class="card"><strong>Dias registrados</strong><div class="valor" id="dias">0</div></div>
-  <div class="card"><strong>Horas trabalhadas</strong><div class="valor" id="horasTrabalhadas">00:00</div></div>
-  <div class="card"><strong>Saldo inicial</strong><div class="valor" id="saldoInicialTela">+00:00</div></div>
-  <div class="card"><strong>Saldo geral real</strong><div class="valor" id="saldoGeral">+00:00</div></div>
+  <div class="card"><strong>Dias</strong><br><span id="dias">0</span></div>
+  <div class="card"><strong>Horas trabalhadas</strong><br><span id="horasTotal">00:00</span></div>
+  <div class="card"><strong>Saldo inicial</strong><br><span id="saldoInicialTela">+00:00</span></div>
+  <div class="card"><strong>Saldo geral</strong><br><span id="saldoGeral">+00:00</span></div>
 </div>
 
 <div class="card">
-  <h2>Saldo acumulado inicial</h2>
-  <label>Tipo:</label>
-  <select id="tipoSaldoInicial">
-    <option value="positivo">Crédito</option>
-    <option value="negativo">Débito</option>
-  </select>
-  <br><br>
-  <label>Horas acumuladas:</label>
-  <input type="time" id="saldoInicialHora" value="00:00">
-  <br><br>
-  <button onclick="salvarConfig()">Salvar saldo inicial</button>
-  <button class="secondary" onclick="zerarSaldoInicial()">Zerar saldo inicial</button>
+<h2>Saldo acumulado inicial</h2>
+<label>Tipo:</label>
+<select id="tipoSaldoInicial" onchange="salvarConfig()">
+  <option value="positivo">Crédito</option>
+  <option value="negativo">Débito</option>
+</select>
+<br><br>
+<label>Horas acumuladas:</label>
+<input type="time" id="saldoInicialHora" value="00:00" onchange="salvarConfig()">
 </div>
 
 <div class="card">
-  <h2>Resumo mensal</h2>
-  <label>Mês:</label>
-  <input type="month" id="mesReferencia">
-  <button onclick="salvarConfig()">Atualizar mês</button>
-  <p id="resumoMensal"></p>
+<h2>Bater ponto automático</h2>
+<button onclick="baterPonto()">Bater ponto agora</button>
+<p id="statusHoje">Nenhum registro hoje.</p>
 </div>
 
 <div class="card">
-  <h2>Bater ponto automático</h2>
-  <button onclick="baterPonto()">Bater ponto agora</button>
-  <p id="statusHoje"></p>
-</div>
+<h2>Batidas de ponto</h2>
+<button onclick="adicionarDia()">Adicionar dia</button>
+<button class="secondary" onclick="exportarCSV()">Exportar CSV</button>
+<button class="danger" onclick="limparTudo()">Limpar tudo</button>
 
-<div class="card">
-  <h2>Batidas de ponto</h2>
-  <button onclick="adicionarDia()">Adicionar dia</button>
-  <button class="secondary" onclick="exportarCSV()">Exportar CSV</button>
-  <button class="danger" onclick="limparTudo()">Limpar tudo</button>
-  <div class="wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Entrada</th>
-          <th>Saída almoço</th>
-          <th>Retorno almoço</th>
-          <th>Saída final</th>
-          <th>Trabalhadas</th>
-          <th>Tipo de abono</th>
-          <th>Horas abonadas</th>
-          <th>Consideradas</th>
-          <th>Saldo dia</th>
-          <th>Status</th>
-          <th>Obs</th>
-          <th>Ação</th>
-        </tr>
-      </thead>
-      <tbody id="tabela"></tbody>
-    </table>
-  </div>
+<div class="wrap">
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Entrada</th>
+<th>Saída almoço</th>
+<th>Retorno almoço</th>
+<th>Saída final</th>
+<th>Trabalhadas</th>
+<th>Abono</th>
+<th>Horas abonadas</th>
+<th>Consideradas</th>
+<th>Saldo</th>
+<th>Obs</th>
+<th>Ação</th>
+</tr>
+</thead>
+<tbody id="tabela"></tbody>
+</table>
+</div>
 </div>
 
 <script>
-var JORNADA = 480;
-var TOLERANCIA = 10;
-var LIMITE_CREDITO = 60;
-var STORAGE = "controle_horas_v4_estavel";
-var CONFIG = "controle_horas_config_v4_estavel";
+const JORNADA = 480;
+const TOLERANCIA = 10;
+const LIMITE_CREDITO = 60;
+const STORAGE = "controle_horas_v3_funcional";
+const CONFIG = "controle_horas_config_v3_funcional";
 
-var registros = carregarRegistros();
-var config = carregarConfig();
+let registros = JSON.parse(localStorage.getItem(STORAGE)) || [];
+let config = JSON.parse(localStorage.getItem(CONFIG)) || {
+  tipoSaldoInicial: "positivo",
+  saldoInicialHora: "00:00"
+};
 
-function gerarId(){ return "id_" + Date.now() + "_" + Math.floor(Math.random()*100000); }
-function hoje(){ return new Date().toISOString().slice(0,10); }
-function mesAtual(){ return new Date().toISOString().slice(0,7); }
-function horaAgora(){ var d=new Date(); return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); }
+function salvar() {
+  localStorage.setItem(STORAGE, JSON.stringify(registros));
+}
 
-function carregarRegistros(){ try{return JSON.parse(localStorage.getItem(STORAGE)) || [];}catch(e){return [];} }
-function carregarConfig(){ try{return JSON.parse(localStorage.getItem(CONFIG)) || {tipoSaldoInicial:"positivo",saldoInicialHora:"00:00",mesReferencia:mesAtual()};}catch(e){return {tipoSaldoInicial:"positivo",saldoInicialHora:"00:00",mesReferencia:mesAtual()};} }
-function salvarRegistros(){ localStorage.setItem(STORAGE, JSON.stringify(registros)); }
-function salvarConfig(){
+function salvarConfig() {
   config.tipoSaldoInicial = document.getElementById("tipoSaldoInicial").value;
   config.saldoInicialHora = document.getElementById("saldoInicialHora").value || "00:00";
-  config.mesReferencia = document.getElementById("mesReferencia").value || mesAtual();
   localStorage.setItem(CONFIG, JSON.stringify(config));
   renderizar();
 }
-function aplicarConfig(){
-  document.getElementById("tipoSaldoInicial").value = config.tipoSaldoInicial || "positivo";
-  document.getElementById("saldoInicialHora").value = config.saldoInicialHora || "00:00";
-  document.getElementById("mesReferencia").value = config.mesReferencia || mesAtual();
-}
-function zerarSaldoInicial(){
-  config.tipoSaldoInicial = "positivo";
-  config.saldoInicialHora = "00:00";
-  config.mesReferencia = config.mesReferencia || mesAtual();
-  localStorage.setItem(CONFIG, JSON.stringify(config));
-  aplicarConfig();
-  renderizar();
+
+function aplicarConfig() {
+  document.getElementById("tipoSaldoInicial").value = config.tipoSaldoInicial;
+  document.getElementById("saldoInicialHora").value = config.saldoInicialHora;
 }
 
-function novoRegistro(data){
-  return {id:gerarId(),data:data||hoje(),entrada:"",saidaAlmoco:"",retornoAlmoco:"",saidaFinal:"",tipoAbono:"nenhum",horasAbonadas:"00:00",obs:""};
+function hoje() {
+  return new Date().toISOString().slice(0,10);
 }
-function paraMin(hora){ if(!hora)return null; var p=hora.split(":"); if(p.length<2)return null; return Number(p[0])*60 + Number(p[1]); }
-function saldoInicialMin(){ var m=paraMin(config.saldoInicialHora || "00:00") || 0; return config.tipoSaldoInicial === "negativo" ? -m : m; }
 
-function validar(reg){
-  if(reg.tipoAbono === "integral" && !reg.entrada && !reg.saidaAlmoco && !reg.retornoAlmoco && !reg.saidaFinal) return "OK";
-  var e=paraMin(reg.entrada), s1=paraMin(reg.saidaAlmoco), r=paraMin(reg.retornoAlmoco), s2=paraMin(reg.saidaFinal);
-  var qtd=[e,s1,r,s2].filter(function(v){return v!==null;}).length;
-  if(qtd===0) return "Sem batidas";
-  if(qtd<4) return "Incompleto";
-  if(s1<=e || r<=s1 || s2<=r) return "Erro horário";
-  return "OK";
+function horaAgora() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
 }
-function horasTrabalhadas(reg){
-  if(reg.tipoAbono === "integral" && !reg.entrada && !reg.saidaAlmoco && !reg.retornoAlmoco && !reg.saidaFinal) return 0;
-  if(validar(reg)!=="OK") return null;
-  var e=paraMin(reg.entrada), s1=paraMin(reg.saidaAlmoco), r=paraMin(reg.retornoAlmoco), s2=paraMin(reg.saidaFinal);
-  if([e,s1,r,s2].some(function(v){return v===null;})) return 0;
-  return (s1-e)+(s2-r);
+
+function idNovo() {
+  return "id_" + Date.now() + "_" + Math.floor(Math.random()*100000);
 }
-function horasConsideradas(reg){
-  if(reg.tipoAbono === "integral") return JORNADA;
-  var trab = horasTrabalhadas(reg);
-  if(trab===null) return null;
-  var abono = reg.tipoAbono === "parcial" ? (paraMin(reg.horasAbonadas || "00:00") || 0) : 0;
+
+function novoRegistro(data = hoje()) {
+  return {
+    id: idNovo(),
+    data: data,
+    entrada: "",
+    saidaAlmoco: "",
+    retornoAlmoco: "",
+    saidaFinal: "",
+    tipoAbono: "nenhum",
+    horasAbonadas: "00:00",
+    obs: ""
+  };
+}
+
+function paraMin(hora) {
+  if (!hora) return null;
+  const [h,m] = hora.split(":").map(Number);
+  return h*60 + m;
+}
+
+function fmt(min) {
+  if (min === null) return "—";
+  const abs = Math.abs(min);
+  const h = Math.floor(abs/60);
+  const m = abs % 60;
+  return String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
+}
+
+function fmtSaldo(min) {
+  if (min === null) return "—";
+  return (min < 0 ? "-" : "+") + fmt(min);
+}
+
+function classe(min) {
+  if (min > 0) return "pos";
+  if (min < 0) return "neg";
+  return "zero";
+}
+
+function saldoInicialMin() {
+  const min = paraMin(config.saldoInicialHora || "00:00") || 0;
+  return config.tipoSaldoInicial === "negativo" ? -min : min;
+}
+
+function horasTrabalhadas(reg) {
+  if (reg.tipoAbono === "integral" && !reg.entrada && !reg.saidaAlmoco && !reg.retornoAlmoco && !reg.saidaFinal) {
+    return 0;
+  }
+
+  const e = paraMin(reg.entrada);
+  const s1 = paraMin(reg.saidaAlmoco);
+  const r = paraMin(reg.retornoAlmoco);
+  const s2 = paraMin(reg.saidaFinal);
+
+  const preenchidos = [e,s1,r,s2].filter(v => v !== null).length;
+  if (preenchidos === 0) return null;
+  if (preenchidos < 4) return null;
+  if (s1 <= e || r <= s1 || s2 <= r) return null;
+
+  return (s1 - e) + (s2 - r);
+}
+
+function horasConsideradas(reg) {
+  if (reg.tipoAbono === "integral") return JORNADA;
+
+  const trab = horasTrabalhadas(reg);
+  if (trab === null) return null;
+
+  const abono = reg.tipoAbono === "parcial" ? (paraMin(reg.horasAbonadas || "00:00") || 0) : 0;
   return Math.min(trab + abono, JORNADA + LIMITE_CREDITO);
 }
-function saldoDia(reg){
-  var cons = horasConsideradas(reg);
-  if(cons===null) return null;
-  var diff = cons - JORNADA;
-  if(Math.abs(diff)<=TOLERANCIA) return 0;
-  if(diff>0) return Math.min(diff, LIMITE_CREDITO);
+
+function saldoDia(reg) {
+  const cons = horasConsideradas(reg);
+  if (cons === null) return null;
+
+  const diff = cons - JORNADA;
+
+  if (Math.abs(diff) <= TOLERANCIA) return 0;
+  if (diff > 0) return Math.min(diff, LIMITE_CREDITO);
   return diff;
 }
-function fmt(min){ if(min===null)return "—"; var a=Math.abs(min); var h=Math.floor(a/60); var m=a%60; return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0"); }
-function fmtSaldo(min){ if(min===null)return "—"; return (min<0?"-":"+")+fmt(min); }
-function classeSaldo(min){ if(min>0)return "pos"; if(min<0)return "neg"; return "zero"; }
-function classeStatus(st){ if(st==="OK")return "ok"; if(st==="Sem batidas")return "neutro"; return "erro"; }
 
-function adicionarDia(){ registros.push(novoRegistro()); salvarRegistros(); renderizar(); }
-function removerDia(id){ registros = registros.filter(function(r){return r.id!==id;}); salvarRegistros(); renderizar(); }
-function limparTudo(){ if(!confirm("Apagar todos os registros?"))return; registros=[]; salvarRegistros(); renderizar(); }
-function atualizar(id,campo,valor){ registros = registros.map(function(r){ if(r.id===id){ r[campo]=valor; } return r; }); salvarRegistros(); renderizar(); }
-function baterPonto(){
-  var reg = registros.find(function(r){return r.data===hoje();});
-  if(!reg){ reg=novoRegistro(hoje()); registros.push(reg); }
-  var h=horaAgora();
-  if(!reg.entrada) reg.entrada=h;
-  else if(!reg.saidaAlmoco) reg.saidaAlmoco=h;
-  else if(!reg.retornoAlmoco) reg.retornoAlmoco=h;
-  else if(!reg.saidaFinal) reg.saidaFinal=h;
-  else alert("As 4 batidas de hoje já foram preenchidas.");
-  salvarRegistros(); renderizar();
+function adicionarDia() {
+  registros.push(novoRegistro());
+  salvar();
+  renderizar();
 }
 
-function renderizar(){
-  registros = registros.map(function(r){
-    return Object.assign({tipoAbono:"nenhum",horasAbonadas:"00:00",obs:"",retornoAlmoco:""}, r);
+function remover(id) {
+  registros = registros.filter(r => r.id !== id);
+  salvar();
+  renderizar();
+}
+
+function limparTudo() {
+  if (!confirm("Apagar todos os registros?")) return;
+  registros = [];
+  salvar();
+  renderizar();
+}
+
+function atualizar(id, campo, valor) {
+  registros = registros.map(r => r.id === id ? {...r, [campo]:valor} : r);
+  salvar();
+  renderizar();
+}
+
+function baterPonto() {
+  let reg = registros.find(r => r.data === hoje());
+  if (!reg) {
+    reg = novoRegistro(hoje());
+    registros.push(reg);
+  }
+
+  const h = horaAgora();
+
+  if (!reg.entrada) reg.entrada = h;
+  else if (!reg.saidaAlmoco) reg.saidaAlmoco = h;
+  else if (!reg.retornoAlmoco) reg.retornoAlmoco = h;
+  else if (!reg.saidaFinal) reg.saidaFinal = h;
+  else alert("As 4 batidas de hoje já foram preenchidas.");
+
+  salvar();
+  renderizar();
+}
+
+function renderizarHoje() {
+  const reg = registros.find(r => r.data === hoje());
+  if (!reg) {
+    document.getElementById("statusHoje").innerText = "Nenhum registro hoje.";
+    return;
+  }
+
+  document.getElementById("statusHoje").innerText =
+    "Entrada: " + (reg.entrada || "—") +
+    " | Saída almoço: " + (reg.saidaAlmoco || "—") +
+    " | Retorno: " + (reg.retornoAlmoco || "—") +
+    " | Saída final: " + (reg.saidaFinal || "—");
+}
+
+function renderizar() {
+  registros = registros.map(r => ({tipoAbono:"nenhum", horasAbonadas:"00:00", obs:"", ...r}));
+  registros.sort((a,b) => new Date(a.data) - new Date(b.data));
+
+  const tabela = document.getElementById("tabela");
+  tabela.innerHTML = "";
+
+  let totalHoras = 0;
+  let saldoPeriodo = 0;
+
+  registros.forEach(reg => {
+    const trab = horasTrabalhadas(reg);
+    const cons = horasConsideradas(reg);
+    const saldo = saldoDia(reg);
+
+    if (trab !== null) totalHoras += trab;
+    if (saldo !== null) saldoPeriodo += saldo;
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td><input type="date" value="${reg.data}" onchange="atualizar('${reg.id}','data',this.value)"></td>
+      <td><input type="time" value="${reg.entrada}" onchange="atualizar('${reg.id}','entrada',this.value)"></td>
+      <td><input type="time" value="${reg.saidaAlmoco}" onchange="atualizar('${reg.id}','saidaAlmoco',this.value)"></td>
+      <td><input type="time" value="${reg.retornoAlmoco}" onchange="atualizar('${reg.id}','retornoAlmoco',this.value)"></td>
+      <td><input type="time" value="${reg.saidaFinal}" onchange="atualizar('${reg.id}','saidaFinal',this.value)"></td>
+      <td>${fmt(trab)}</td>
+      <td>
+        <select onchange="atualizar('${reg.id}','tipoAbono',this.value)">
+          <option value="nenhum" ${reg.tipoAbono === "nenhum" ? "selected" : ""}>Sem abono</option>
+          <option value="integral" ${reg.tipoAbono === "integral" ? "selected" : ""}>Ponto abonado</option>
+          <option value="parcial" ${reg.tipoAbono === "parcial" ? "selected" : ""}>Horas abonadas</option>
+        </select>
+      </td>
+      <td><input type="time" value="${reg.horasAbonadas}" ${reg.tipoAbono === "parcial" ? "" : "disabled"} onchange="atualizar('${reg.id}','horasAbonadas',this.value)"></td>
+      <td>${fmt(cons)}</td>
+      <td class="${classe(saldo)}">${fmtSaldo(saldo)}</td>
+      <td><input type="text" value="${reg.obs}" onchange="atualizar('${reg.id}','obs',this.value)"></td>
+      <td><button class="danger" onclick="remover('${reg.id}')">Excluir</button></td>
+    `;
+
+    tabela.appendChild(tr);
   });
-  registros.sort(function(a,b){return new Date(a.data)-new Date(b.data);});
-  var tbody=document.getElementById("tabela");
-  tbody.innerHTML="";
-  var totalHoras=0, saldoPeriodo=0;
-  registros.forEach(function(reg){
-    var trab=horasTrabalhadas(reg), cons=horasConsideradas(reg), sd=saldoDia(reg), st=validar(reg);
-    if(trab!==null) totalHoras+=trab;
-    if(sd!==null) saldoPeriodo+=sd;
-    var tr=document.createElement("tr");
-    tr.innerHTML =
-      '<td><input type="date" value="'+reg.data+'" onchange="atualizar(\''+reg.id+'\',\'data\',this.value)"></td>'+
-      '<td><input type="time" value="'+reg.entrada+'" onchange="atualizar(\''+reg.id+'\',\'entrada\',this.value)"></td>'+
-      '<td><input type="time" value="'+reg.saidaAlmoco+'" onchange="atualizar(\''+reg.id+'\',\'saidaAlmoco\',this.value)"></td>'+
-      '<td><input type="time" value="'+reg.retornoAlmoco+'" onchange="atualizar(\''+reg.id+'\',\'retornoAlmoco\',this.value)"></td>'+
-      '<td><input type="time" value="'+reg.saidaFinal+'" onchange="atualizar(\''+reg.id+'\',\'saidaFinal\',this.value)"></td>'+
-      '<td>'+fmt(trab)+'</td>'+
-      '<td><select onchange="atualizar(\''+reg.id+'\',\'tipoAbono\',this.value)">'+
-        '<option value="nenhum" '+(reg.tipoAbono==="nenhum"?"selected":"")+'>Sem abono</option>'+
-        '<option value="integral" '+(reg.tipoAbono==="integral"?"selected":"")+'>Ponto abonado</option>'+
-        '<option value="parcial" '+(reg.tipoAbono==="parcial"?"selected":"")+'>Horas abonadas</option>'+
-      '</select></td>'+
-      '<td><input type="time" value="'+(reg.horasAbonadas||"00:00")+'" '+(reg.tipoAbono==="parcial"?"":"disabled")+' onchange="atualizar(\''+reg.id+'\',\'horasAbonadas\',this.value)"></td>'+
-      '<td>'+fmt(cons)+'</td>'+
-      '<td class="'+classeSaldo(sd)+'">'+fmtSaldo(sd)+'</td>'+
-      '<td class="'+classeStatus(st)+'">'+st+'</td>'+
-      '<td><input type="text" value="'+(reg.obs||"")+'" onchange="atualizar(\''+reg.id+'\',\'obs\',this.value)"></td>'+
-      '<td><button class="danger" onclick="removerDia(\''+reg.id+'\')">Excluir</button></td>';
-    tbody.appendChild(tr);
-  });
-  var inicial=saldoInicialMin();
-  var geral=inicial+saldoPeriodo;
-  document.getElementById("dias").innerText=registros.length;
-  document.getElementById("horasTrabalhadas").innerText=fmt(totalHoras);
-  document.getElementById("saldoInicialTela").innerText=fmtSaldo(inicial);
-  document.getElementById("saldoGeral").innerText=fmtSaldo(geral);
-  document.getElementById("saldoGeral").className="valor "+classeSaldo(geral);
-  renderizarResumoMensal();
+
+  const inicial = saldoInicialMin();
+  const geral = inicial + saldoPeriodo;
+
+  document.getElementById("dias").innerText = registros.length;
+  document.getElementById("horasTotal").innerText = fmt(totalHoras);
+  document.getElementById("saldoInicialTela").innerText = fmtSaldo(inicial);
+  document.getElementById("saldoGeral").innerText = fmtSaldo(geral);
+  document.getElementById("saldoGeral").className = classe(geral);
+
   renderizarHoje();
 }
-function renderizarResumoMensal(){
-  var mes=config.mesReferencia || mesAtual();
-  var regs=registros.filter(function(r){return (r.data||"").slice(0,7)===mes;});
-  var horas=0,saldo=0,validos=0,erros=0;
-  regs.forEach(function(r){
-    var st=validar(r), trab=horasTrabalhadas(r), sd=saldoDia(r);
-    if(trab!==null){horas+=trab;validos++;}
-    if(sd!==null)saldo+=sd;
-    if(st!=="OK" && st!=="Sem batidas")erros++;
-  });
-  document.getElementById("resumoMensal").innerHTML="Mês: <strong>"+mes+"</strong><br>Dias no mês: "+regs.length+"<br>Dias válidos: "+validos+"<br>Dias com erro/incompletos: "+erros+"<br>Horas trabalhadas: "+fmt(horas)+"<br>Saldo do mês: <span class='"+classeSaldo(saldo)+"'>"+fmtSaldo(saldo)+"</span>";
-}
-function renderizarHoje(){
-  var reg=registros.find(function(r){return r.data===hoje();});
-  if(!reg){document.getElementById("statusHoje").innerText="Nenhum registro hoje.";return;}
-  document.getElementById("statusHoje").innerHTML="Entrada: "+(reg.entrada||"—")+" | Saída almoço: "+(reg.saidaAlmoco||"—")+" | Retorno: "+(reg.retornoAlmoco||"—")+" | Saída final: "+(reg.saidaFinal||"—");
-}
-function exportarCSV(){
-  var csv="Data;Entrada;Saida Almoco;Retorno Almoco;Saida Final;Trabalhadas;Abono;Horas Abonadas;Consideradas;Saldo;Status;Obs
+
+function exportarCSV() {
+  let csv = "Data;Entrada;Saida Almoco;Retorno Almoco;Saida Final;Trabalhadas;Abono;Horas Abonadas;Consideradas;Saldo;Obs
 ";
-  registros.forEach(function(r){
-    csv += r.data+";"+r.entrada+";"+r.saidaAlmoco+";"+r.retornoAlmoco+";"+r.saidaFinal+";"+fmt(horasTrabalhadas(r))+";"+r.tipoAbono+";"+(r.horasAbonadas||"00:00")+";"+fmt(horasConsideradas(r))+";"+fmtSaldo(saldoDia(r))+";"+validar(r)+";"+(r.obs||"").replaceAll(";",",")+"
-";
+
+  registros.forEach(r => {
+    csv += `${r.data};${r.entrada};${r.saidaAlmoco};${r.retornoAlmoco};${r.saidaFinal};${fmt(horasTrabalhadas(r))};${r.tipoAbono};${r.horasAbonadas};${fmt(horasConsideradas(r))};${fmtSaldo(saldoDia(r))};${(r.obs || "").replaceAll(";", ",")}
+`;
   });
-  var blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement("a");
-  a.href=url;
-  a.download="controle_horas_v4_estavel.csv";
+
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "controle_horas_v3_funcional.csv";
   a.click();
   URL.revokeObjectURL(url);
 }
 
-if(registros.length===0){
-  registros.push({id:gerarId(),data:hoje(),entrada:"07:30",saidaAlmoco:"11:30",retornoAlmoco:"12:30",saidaFinal:"17:30",tipoAbono:"nenhum",horasAbonadas:"00:00",obs:"Modelo padrão"});
-  salvarRegistros();
+if (registros.length === 0) {
+  registros.push({
+    id: idNovo(),
+    data: hoje(),
+    entrada: "07:30",
+    saidaAlmoco: "11:30",
+    retornoAlmoco: "12:30",
+    saidaFinal: "17:30",
+    tipoAbono: "nenhum",
+    horasAbonadas: "00:00",
+    obs: "Modelo padrão"
+  });
+  salvar();
 }
+
 aplicarConfig();
 renderizar();
 </script>
+
 </body>
 </html>
