@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle de Horas V2</title>
+<title>Controle de Horas V3</title>
 <style>
 :root {
   --bg: #f3f4f6;
@@ -21,229 +21,79 @@
 }
 
 * { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.header {
-  margin-bottom: 18px;
-}
-
-h1 {
-  margin: 0 0 6px;
-  font-size: 28px;
-}
-
-.subtitle {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.4;
-}
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin: 20px 0;
-}
-
-.card {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.07);
-}
-
-.card-title {
-  color: var(--muted);
-  font-size: 13px;
-  margin-bottom: 8px;
-}
-
-.card-value {
-  font-size: 26px;
-  font-weight: 800;
-}
-
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); }
+.container { max-width: 1250px; margin: 0 auto; padding: 20px; }
+h1 { margin: 0 0 6px; font-size: 28px; }
+h2 { margin: 0 0 6px; font-size: 20px; }
+.subtitle { margin: 0; color: var(--muted); line-height: 1.4; }
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 20px 0; }
+.card, .panel { background: var(--card); border-radius: 16px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+.panel { margin-bottom: 18px; }
+.card-title { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+.card-value { font-size: 26px; font-weight: 800; }
 .positive { color: var(--green); }
 .negative { color: var(--red); }
 .neutral { color: #374151; }
-
-.panel {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.07);
-  margin-bottom: 18px;
-}
-
-.panel-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-}
-
-.panel h2 {
-  margin: 0 0 5px;
-  font-size: 20px;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-button {
-  border: 0;
-  border-radius: 10px;
-  padding: 10px 13px;
-  font-weight: 700;
-  cursor: pointer;
-  background: var(--dark);
-  color: white;
-}
-
+.panel-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 14px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+button { border: 0; border-radius: 10px; padding: 10px 13px; font-weight: 700; cursor: pointer; background: var(--dark); color: white; }
 button:hover { opacity: .9; }
 button.secondary { background: var(--gray-bg); color: var(--text); }
 button.blue { background: var(--blue); }
 button.danger { background: #dc2626; }
 button.small { padding: 7px 10px; font-size: 12px; }
-
-.table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 980px;
-  background: white;
-}
-
-th, td {
-  padding: 10px;
-  border-bottom: 1px solid var(--line);
-  text-align: center;
-  vertical-align: middle;
-}
-
-th {
-  background: #f9fafb;
-  font-size: 13px;
-  color: #4b5563;
-}
-
-input, select {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-.badge {
-  display: inline-block;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 13px;
-  font-weight: 800;
-}
-
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; min-width: 1220px; background: white; }
+th, td { padding: 9px; border-bottom: 1px solid var(--line); text-align: center; vertical-align: middle; }
+th { background: #f9fafb; font-size: 13px; color: #4b5563; }
+input, select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+.badge { display: inline-block; border-radius: 999px; padding: 6px 10px; font-size: 13px; font-weight: 800; }
 .badge.pos { background: var(--green-bg); color: #065f46; }
 .badge.neg { background: var(--red-bg); color: #991b1b; }
 .badge.zero { background: var(--gray-bg); color: #374151; }
-
-.rules {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.rule {
-  background: #f9fafb;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 14px;
-  line-height: 1.4;
-}
-
-.rule strong {
-  display: block;
-  margin-bottom: 6px;
-}
-
-.auto-box {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 14px;
-}
-
-.status-hoje {
-  background: #f9fafb;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 14px;
-  line-height: 1.5;
-}
-
-.footer-note {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-@media (max-width: 900px) {
-  .cards { grid-template-columns: repeat(2, 1fr); }
-  .rules, .auto-box { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 560px) {
-  .container { padding: 12px; }
-  .cards { grid-template-columns: 1fr; }
-  h1 { font-size: 24px; }
-  .card-value { font-size: 24px; }
-}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.box { background: #f9fafb; border: 1px solid var(--line); border-radius: 12px; padding: 14px; line-height: 1.45; }
+.config-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; max-width: 650px; }
+.footer-note { color: var(--muted); font-size: 13px; line-height: 1.4; }
+@media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } .grid-2, .grid-3, .config-row { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .container { padding: 12px; } .cards { grid-template-columns: 1fr; } h1 { font-size: 24px; } .card-value { font-size: 24px; } }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>Controle de Horas Trabalhadas — V2</h1>
-    <p class="subtitle">Jornada padrão: 8h líquidas. Faixa neutra: 7h50 a 8h10. Crédito máximo diário: +1h.</p>
+    <h1>Controle de Horas Trabalhadas — V3</h1>
+    <p class="subtitle">Jornada padrão: 8h líquidas. Faixa neutra: 7h50 a 8h10. Crédito máximo diário: +1h. Agora com saldo inicial e abono.</p>
   </div>
 
   <div class="cards">
-    <div class="card">
-      <div class="card-title">Dias registrados</div>
-      <div class="card-value" id="diasRegistrados">0</div>
+    <div class="card"><div class="card-title">Dias registrados</div><div class="card-value" id="diasRegistrados">0</div></div>
+    <div class="card"><div class="card-title">Horas lançadas</div><div class="card-value" id="horasLancadas">00:00</div></div>
+    <div class="card"><div class="card-title">Saldo inicial</div><div class="card-value" id="saldoInicialCard">+00:00</div></div>
+    <div class="card"><div class="card-title">Saldo geral real</div><div class="card-value" id="saldoGeral">+00:00</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Saldo acumulado até o momento</h2>
+        <p class="subtitle">Informe aqui o banco de horas que você já tinha antes de começar a usar o sistema.</p>
+      </div>
     </div>
-    <div class="card">
-      <div class="card-title">Horas lançadas</div>
-      <div class="card-value" id="horasLancadas">00:00</div>
-    </div>
-    <div class="card">
-      <div class="card-title">Saldo geral</div>
-      <div class="card-value" id="saldoGeral">00:00</div>
-    </div>
-    <div class="card">
-      <div class="card-title">Situação</div>
-      <div class="card-value" id="situacaoGeral">Zerado</div>
+    <div class="config-row">
+      <div>
+        <label>Tipo</label>
+        <select id="tipoSaldoInicial" onchange="salvarConfig()">
+          <option value="positivo">Crédito</option>
+          <option value="negativo">Débito</option>
+        </select>
+      </div>
+      <div>
+        <label>Horas acumuladas</label>
+        <input type="time" id="saldoInicialHora" value="00:00" onchange="salvarConfig()">
+      </div>
+      <button class="secondary" onclick="zerarSaldoInicial()">Zerar saldo inicial</button>
     </div>
   </div>
 
@@ -251,21 +101,13 @@ input, select {
     <div class="panel-head">
       <div>
         <h2>Bater ponto automático</h2>
-        <p class="subtitle">Use os botões abaixo para registrar a hora atual no dia de hoje.</p>
+        <p class="subtitle">Registra a hora atual no dia de hoje seguindo a ordem das quatro batidas.</p>
       </div>
-      <div class="actions">
-        <button class="blue" onclick="baterPontoAutomatico()">Bater ponto agora</button>
-      </div>
+      <div class="actions"><button class="blue" onclick="baterPontoAutomatico()">Bater ponto agora</button></div>
     </div>
-    <div class="auto-box">
-      <div class="status-hoje" id="statusHoje">Nenhum registro para hoje.</div>
-      <div class="status-hoje">
-        <strong>Ordem automática:</strong><br>
-        1ª batida: entrada<br>
-        2ª batida: saída almoço<br>
-        3ª batida: retorno almoço<br>
-        4ª batida: saída final
-      </div>
+    <div class="grid-2">
+      <div class="box" id="statusHoje">Nenhum registro para hoje.</div>
+      <div class="box"><strong>Ordem automática:</strong><br>1ª: entrada<br>2ª: saída almoço<br>3ª: retorno almoço<br>4ª: saída final</div>
     </div>
   </div>
 
@@ -273,7 +115,7 @@ input, select {
     <div class="panel-head">
       <div>
         <h2>Batidas de ponto</h2>
-        <p class="subtitle">Você pode preencher manualmente ou usar o botão de bater ponto automático.</p>
+        <p class="subtitle">Use abono integral para ponto abonado no dia todo. Use abono parcial para meio expediente, consulta, serviço externo ou justificativa em horas.</p>
       </div>
       <div class="actions">
         <button onclick="adicionarDia()">+ Adicionar dia</button>
@@ -291,7 +133,10 @@ input, select {
             <th>Saída almoço</th>
             <th>Retorno almoço</th>
             <th>Saída final</th>
-            <th>Horas do dia</th>
+            <th>Horas trabalhadas</th>
+            <th>Tipo de abono</th>
+            <th>Horas abonadas</th>
+            <th>Horas consideradas</th>
             <th>Saldo do dia</th>
             <th>Observação</th>
             <th>Ação</th>
@@ -304,19 +149,10 @@ input, select {
 
   <div class="panel">
     <h2>Regra aplicada</h2>
-    <div class="rules">
-      <div class="rule">
-        <strong>Débito</strong>
-        Até 7h49 trabalhadas: gera débito real abaixo de 8h. Ex.: 7h49 = -00:11.
-      </div>
-      <div class="rule">
-        <strong>Faixa neutra</strong>
-        De 7h50 até 8h10: não gera crédito nem débito.
-      </div>
-      <div class="rule">
-        <strong>Crédito</strong>
-        A partir de 8h11: gera crédito real acima de 8h, limitado a +01:00 por dia.
-      </div>
+    <div class="grid-3">
+      <div class="box"><strong>Débito</strong>Até 7h49 consideradas: gera débito real abaixo de 8h. Ex.: 7h49 = -00:11.</div>
+      <div class="box"><strong>Faixa neutra</strong>De 7h50 até 8h10 consideradas: não gera crédito nem débito.</div>
+      <div class="box"><strong>Abono</strong>Abono integral zera o saldo do dia. Abono parcial soma às horas trabalhadas antes de calcular o saldo.</div>
     </div>
   </div>
 
@@ -327,199 +163,147 @@ input, select {
 const JORNADA_PADRAO = 8 * 60;
 const TOLERANCIA = 10;
 const LIMITE_CREDITO_DIA = 60;
-const STORAGE_KEY = "controle_horas_v2";
+const STORAGE_KEY = "controle_horas_v3";
+const CONFIG_KEY = "controle_horas_config_v3";
 
 let registros = carregarDados();
+let config = carregarConfig();
 
 function carregarDados() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
 }
-
-function salvarDados() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(registros));
+function carregarConfig() {
+  try { return JSON.parse(localStorage.getItem(CONFIG_KEY)) || { tipoSaldoInicial: "positivo", saldoInicialHora: "00:00" }; }
+  catch { return { tipoSaldoInicial: "positivo", saldoInicialHora: "00:00" }; }
 }
-
-function hojeISO() {
-  return new Date().toISOString().slice(0, 10);
+function salvarDados() { localStorage.setItem(STORAGE_KEY, JSON.stringify(registros)); }
+function salvarConfig() {
+  config.tipoSaldoInicial = document.getElementById("tipoSaldoInicial").value;
+  config.saldoInicialHora = document.getElementById("saldoInicialHora").value || "00:00";
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  renderizar();
 }
-
+function aplicarConfigNaTela() {
+  document.getElementById("tipoSaldoInicial").value = config.tipoSaldoInicial || "positivo";
+  document.getElementById("saldoInicialHora").value = config.saldoInicialHora || "00:00";
+}
+function zerarSaldoInicial() {
+  config = { tipoSaldoInicial: "positivo", saldoInicialHora: "00:00" };
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  aplicarConfigNaTela();
+  renderizar();
+}
+function hojeISO() { return new Date().toISOString().slice(0, 10); }
 function horaAtualHHMM() {
   const agora = new Date();
-  const h = String(agora.getHours()).padStart(2, "0");
-  const m = String(agora.getMinutes()).padStart(2, "0");
-  return `${h}:${m}`;
+  return String(agora.getHours()).padStart(2, "0") + ":" + String(agora.getMinutes()).padStart(2, "0");
 }
-
 function novoRegistro(data = hojeISO()) {
-  return {
-    id: crypto.randomUUID(),
-    data,
-    entrada: "",
-    saidaAlmoco: "",
-    retornoAlmoco: "",
-    saidaFinal: "",
-    obs: ""
-  };
+  return { id: crypto.randomUUID(), data, entrada: "", saidaAlmoco: "", retornoAlmoco: "", saidaFinal: "", tipoAbono: "nenhum", horasAbonadas: "00:00", obs: "" };
 }
-
 function paraMinutos(hora) {
   if (!hora) return null;
   const [h, m] = hora.split(":").map(Number);
   if (Number.isNaN(h) || Number.isNaN(m)) return null;
   return h * 60 + m;
 }
-
+function saldoInicialMinutos() {
+  const min = paraMinutos(config.saldoInicialHora || "00:00") || 0;
+  return config.tipoSaldoInicial === "negativo" ? -min : min;
+}
 function calcularHorasDia(reg) {
   const entrada = paraMinutos(reg.entrada);
   const saidaAlmoco = paraMinutos(reg.saidaAlmoco);
   const retornoAlmoco = paraMinutos(reg.retornoAlmoco);
   const saidaFinal = paraMinutos(reg.saidaFinal);
-
   if ([entrada, saidaAlmoco, retornoAlmoco, saidaFinal].some(v => v === null)) return null;
-
   const manha = saidaAlmoco - entrada;
   const tarde = saidaFinal - retornoAlmoco;
-
   if (manha < 0 || tarde < 0) return null;
-
   return manha + tarde;
 }
-
-function calcularSaldoDia(horasDia) {
-  if (horasDia === null) return null;
-
-  const diff = horasDia - JORNADA_PADRAO;
-
+function calcularConsideradas(reg, horasTrabalhadas) {
+  const tipo = reg.tipoAbono || "nenhum";
+  if (tipo === "integral") return JORNADA_PADRAO;
+  const trabalhadas = horasTrabalhadas === null ? 0 : horasTrabalhadas;
+  const abonadas = tipo === "parcial" ? (paraMinutos(reg.horasAbonadas || "00:00") || 0) : 0;
+  return Math.min(trabalhadas + abonadas, JORNADA_PADRAO + LIMITE_CREDITO_DIA);
+}
+function calcularSaldoDia(horasConsideradas) {
+  if (horasConsideradas === null) return null;
+  const diff = horasConsideradas - JORNADA_PADRAO;
   if (Math.abs(diff) <= TOLERANCIA) return 0;
   if (diff > 0) return Math.min(diff, LIMITE_CREDITO_DIA);
   return diff;
 }
-
 function formatarHHMM(minutos) {
   if (minutos === null) return "—";
   const abs = Math.abs(minutos);
   const h = Math.floor(abs / 60);
   const m = abs % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
 }
-
 function formatarSaldo(minutos) {
   if (minutos === null) return "—";
-  const sinal = minutos < 0 ? "-" : "+";
-  return sinal + formatarHHMM(minutos);
+  return (minutos < 0 ? "-" : "+") + formatarHHMM(minutos);
 }
-
 function classeSaldo(minutos) {
   if (minutos > 0) return "pos";
   if (minutos < 0) return "neg";
   return "zero";
 }
-
-function adicionarDia() {
-  registros.push(novoRegistro());
-  salvarDados();
-  renderizar();
-}
-
-function removerDia(id) {
-  registros = registros.filter(reg => reg.id !== id);
-  salvarDados();
-  renderizar();
-}
-
+function adicionarDia() { registros.push(novoRegistro()); salvarDados(); renderizar(); }
+function removerDia(id) { registros = registros.filter(reg => reg.id !== id); salvarDados(); renderizar(); }
 function limparTudo() {
   if (!confirm("Tem certeza que deseja apagar todos os registros?")) return;
   registros = [];
   salvarDados();
   renderizar();
 }
-
 function atualizarCampo(id, campo, valor) {
   registros = registros.map(reg => reg.id === id ? { ...reg, [campo]: valor } : reg);
   salvarDados();
   renderizar();
 }
-
 function obterRegistroHoje() {
   const dataHoje = hojeISO();
   let reg = registros.find(r => r.data === dataHoje);
-
-  if (!reg) {
-    reg = novoRegistro(dataHoje);
-    registros.push(reg);
-  }
-
+  if (!reg) { reg = novoRegistro(dataHoje); registros.push(reg); }
   return reg;
 }
-
 function baterPontoAutomatico() {
   const reg = obterRegistroHoje();
   const hora = horaAtualHHMM();
-
-  if (!reg.entrada) {
-    reg.entrada = hora;
-  } else if (!reg.saidaAlmoco) {
-    reg.saidaAlmoco = hora;
-  } else if (!reg.retornoAlmoco) {
-    reg.retornoAlmoco = hora;
-  } else if (!reg.saidaFinal) {
-    reg.saidaFinal = hora;
-  } else {
-    alert("As 4 batidas de hoje já foram preenchidas. Edite manualmente se precisar corrigir.");
-  }
-
+  if (!reg.entrada) reg.entrada = hora;
+  else if (!reg.saidaAlmoco) reg.saidaAlmoco = hora;
+  else if (!reg.retornoAlmoco) reg.retornoAlmoco = hora;
+  else if (!reg.saidaFinal) reg.saidaFinal = hora;
+  else alert("As 4 batidas de hoje já foram preenchidas. Edite manualmente se precisar corrigir.");
   salvarDados();
   renderizar();
 }
-
 function renderizarStatusHoje() {
   const el = document.getElementById("statusHoje");
   const reg = registros.find(r => r.data === hojeISO());
-
-  if (!reg) {
-    el.innerHTML = "Nenhum registro para hoje.";
-    return;
-  }
-
-  const horasDia = calcularHorasDia(reg);
-  const saldoDia = calcularSaldoDia(horasDia);
-
-  el.innerHTML = `
-    <strong>Hoje (${reg.data})</strong><br>
-    Entrada: ${reg.entrada || "—"}<br>
-    Saída almoço: ${reg.saidaAlmoco || "—"}<br>
-    Retorno almoço: ${reg.retornoAlmoco || "—"}<br>
-    Saída final: ${reg.saidaFinal || "—"}<br>
-    Horas: ${horasDia === null ? "—" : formatarHHMM(horasDia)}<br>
-    Saldo: ${saldoDia === null ? "—" : formatarSaldo(saldoDia)}
-  `;
+  if (!reg) { el.innerHTML = "Nenhum registro para hoje."; return; }
+  const trabalhadas = calcularHorasDia(reg);
+  const consideradas = calcularConsideradas(reg, trabalhadas);
+  const saldo = calcularSaldoDia(consideradas);
+  el.innerHTML = `<strong>Hoje (${reg.data})</strong><br>Entrada: ${reg.entrada || "—"}<br>Saída almoço: ${reg.saidaAlmoco || "—"}<br>Retorno almoço: ${reg.retornoAlmoco || "—"}<br>Saída final: ${reg.saidaFinal || "—"}<br>Horas trabalhadas: ${trabalhadas === null ? "—" : formatarHHMM(trabalhadas)}<br>Horas consideradas: ${formatarHHMM(consideradas)}<br>Saldo: ${formatarSaldo(saldo)}`;
 }
-
 function renderizar() {
+  registros = registros.map(r => ({ tipoAbono: "nenhum", horasAbonadas: "00:00", obs: "", ...r }));
   registros.sort((a, b) => new Date(a.data) - new Date(b.data));
-
   const tabela = document.getElementById("tabela");
   tabela.innerHTML = "";
-
   let totalHoras = 0;
-  let saldoGeral = 0;
-  let diasValidos = 0;
-
+  let saldoPeriodo = 0;
   registros.forEach(reg => {
-    const horasDia = calcularHorasDia(reg);
-    const saldoDia = calcularSaldoDia(horasDia);
-
-    if (horasDia !== null) {
-      totalHoras += horasDia;
-      diasValidos++;
-    }
-
-    if (saldoDia !== null) saldoGeral += saldoDia;
-
+    const trabalhadas = calcularHorasDia(reg);
+    const consideradas = calcularConsideradas(reg, trabalhadas);
+    const saldo = calcularSaldoDia(consideradas);
+    if (trabalhadas !== null) totalHoras += trabalhadas;
+    if (saldo !== null) saldoPeriodo += saldo;
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><input type="date" value="${reg.data}" onchange="atualizarCampo('${reg.id}', 'data', this.value)"></td>
@@ -527,79 +311,56 @@ function renderizar() {
       <td><input type="time" value="${reg.saidaAlmoco}" onchange="atualizarCampo('${reg.id}', 'saidaAlmoco', this.value)"></td>
       <td><input type="time" value="${reg.retornoAlmoco}" onchange="atualizarCampo('${reg.id}', 'retornoAlmoco', this.value)"></td>
       <td><input type="time" value="${reg.saidaFinal}" onchange="atualizarCampo('${reg.id}', 'saidaFinal', this.value)"></td>
-      <td><strong>${horasDia === null ? "—" : formatarHHMM(horasDia)}</strong></td>
-      <td><span class="badge ${classeSaldo(saldoDia)}">${saldoDia === null ? "—" : formatarSaldo(saldoDia)}</span></td>
+      <td><strong>${trabalhadas === null ? "—" : formatarHHMM(trabalhadas)}</strong></td>
+      <td>
+        <select onchange="atualizarCampo('${reg.id}', 'tipoAbono', this.value)">
+          <option value="nenhum" ${reg.tipoAbono === "nenhum" ? "selected" : ""}>Sem abono</option>
+          <option value="integral" ${reg.tipoAbono === "integral" ? "selected" : ""}>Ponto abonado</option>
+          <option value="parcial" ${reg.tipoAbono === "parcial" ? "selected" : ""}>Horas abonadas</option>
+        </select>
+      </td>
+      <td><input type="time" value="${reg.horasAbonadas || "00:00"}" onchange="atualizarCampo('${reg.id}', 'horasAbonadas', this.value)" ${reg.tipoAbono === "parcial" ? "" : "disabled"}></td>
+      <td><strong>${formatarHHMM(consideradas)}</strong></td>
+      <td><span class="badge ${classeSaldo(saldo)}">${formatarSaldo(saldo)}</span></td>
       <td><input type="text" value="${reg.obs || ""}" placeholder="Opcional" onchange="atualizarCampo('${reg.id}', 'obs', this.value)"></td>
       <td><button class="danger small" onclick="removerDia('${reg.id}')">Excluir</button></td>
     `;
-
     tabela.appendChild(tr);
   });
-
+  const saldoInicial = saldoInicialMinutos();
+  const saldoGeral = saldoInicial + saldoPeriodo;
   document.getElementById("diasRegistrados").textContent = registros.length;
   document.getElementById("horasLancadas").textContent = formatarHHMM(totalHoras);
-
+  document.getElementById("saldoInicialCard").textContent = formatarSaldo(saldoInicial);
   const saldoEl = document.getElementById("saldoGeral");
   saldoEl.textContent = formatarSaldo(saldoGeral);
   saldoEl.className = "card-value " + (saldoGeral > 0 ? "positive" : saldoGeral < 0 ? "negative" : "neutral");
-
-  const situacaoEl = document.getElementById("situacaoGeral");
-  if (saldoGeral > 0) {
-    situacaoEl.textContent = "Crédito";
-    situacaoEl.className = "card-value positive";
-  } else if (saldoGeral < 0) {
-    situacaoEl.textContent = "Débito";
-    situacaoEl.className = "card-value negative";
-  } else {
-    situacaoEl.textContent = "Zerado";
-    situacaoEl.className = "card-value neutral";
-  }
-
   renderizarStatusHoje();
 }
-
 function exportarCSV() {
-  const linhas = [["Data", "Entrada", "Saida Almoco", "Retorno Almoco", "Saida Final", "Horas Dia", "Saldo Dia", "Observacao"]];
-
+  const linhas = [["Data", "Entrada", "Saida Almoco", "Retorno Almoco", "Saida Final", "Horas Trabalhadas", "Tipo Abono", "Horas Abonadas", "Horas Consideradas", "Saldo Dia", "Observacao"]];
   registros.forEach(reg => {
-    const horasDia = calcularHorasDia(reg);
-    const saldoDia = calcularSaldoDia(horasDia);
-
-    linhas.push([
-      reg.data,
-      reg.entrada,
-      reg.saidaAlmoco,
-      reg.retornoAlmoco,
-      reg.saidaFinal,
-      horasDia === null ? "" : formatarHHMM(horasDia),
-      saldoDia === null ? "" : formatarSaldo(saldoDia),
-      (reg.obs || "").replaceAll(";", ",")
-    ]);
+    const trabalhadas = calcularHorasDia(reg);
+    const consideradas = calcularConsideradas(reg, trabalhadas);
+    const saldo = calcularSaldoDia(consideradas);
+    linhas.push([reg.data, reg.entrada, reg.saidaAlmoco, reg.retornoAlmoco, reg.saidaFinal, trabalhadas === null ? "" : formatarHHMM(trabalhadas), reg.tipoAbono || "nenhum", reg.horasAbonadas || "00:00", formatarHHMM(consideradas), saldo === null ? "" : formatarSaldo(saldo), (reg.obs || "").replaceAll(";", ",")]);
   });
-
   const csv = linhas.map(linha => linha.join(";")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "controle_horas_v2.csv";
+  a.download = "controle_horas_v3.csv";
   a.click();
   URL.revokeObjectURL(url);
 }
 
 if (registros.length === 0) {
-  registros.push({
-    id: crypto.randomUUID(),
-    data: hojeISO(),
-    entrada: "07:30",
-    saidaAlmoco: "11:30",
-    retornoAlmoco: "12:30",
-    saidaFinal: "17:30",
-    obs: "Modelo padrão"
-  });
+  registros.push({ id: crypto.randomUUID(), data: hojeISO(), entrada: "07:30", saidaAlmoco: "11:30", retornoAlmoco: "12:30", saidaFinal: "17:30", tipoAbono: "nenhum", horasAbonadas: "00:00", obs: "Modelo padrão" });
   salvarDados();
 }
 
+aplicarConfigNaTela();
 renderizar();
 </script>
 </body>
