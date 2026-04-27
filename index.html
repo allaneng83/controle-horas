@@ -1,361 +1,200 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle de Horas V3 Funcional</title>
+<title>Controle de Horas</title>
+
 <style>
 body { font-family: Arial; background:#f4f4f4; padding:20px; }
-h1 { margin-bottom:5px; }
-button { padding:10px; margin:5px; cursor:pointer; border:0; border-radius:8px; background:#111827; color:white; font-weight:bold; }
+button { padding:10px; margin:5px; cursor:pointer; border-radius:8px; border:0; background:#111827; color:white; font-weight:bold;}
 button.danger { background:#dc2626; }
-button.secondary { background:#e5e7eb; color:#111827; }
-.card { background:white; padding:15px; margin:10px 0; border-radius:12px; box-shadow:0 2px 6px #ccc; }
-.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-table { width:100%; background:white; border-collapse:collapse; margin-top:10px; min-width:1150px; }
-th, td { border:1px solid #ccc; padding:8px; text-align:center; }
-input, select { padding:6px; width:100%; box-sizing:border-box; }
-.wrap { overflow-x:auto; }
+table { width:100%; background:#fff; border-collapse: collapse; margin-top:10px; }
+th, td { padding:8px; border:1px solid #ccc; text-align:center; }
+input, select { padding:5px; width:100%; }
 .pos { color:green; font-weight:bold; }
 .neg { color:red; font-weight:bold; }
-.zero { color:#333; font-weight:bold; }
-@media(max-width:800px){ .grid{grid-template-columns:1fr;} body{padding:10px;} }
 </style>
+
 </head>
 <body>
 
-<h1>Controle de Horas V3 Funcional</h1>
-<p>Jornada: 8h. Faixa neutra: 7h50 a 8h10. Crédito máximo diário: +1h.</p>
+<h2>Controle de Horas</h2>
 
-<div class="grid">
-  <div class="card"><strong>Dias</strong><br><span id="dias">0</span></div>
-  <div class="card"><strong>Horas trabalhadas</strong><br><span id="horasTotal">00:00</span></div>
-  <div class="card"><strong>Saldo inicial</strong><br><span id="saldoInicialTela">+00:00</span></div>
-  <div class="card"><strong>Saldo geral</strong><br><span id="saldoGeral">+00:00</span></div>
-</div>
+<p><strong>Saldo geral:</strong> <span id="saldoGeral">+00:00</span></p>
 
-<div class="card">
-<h2>Saldo acumulado inicial</h2>
-<label>Tipo:</label>
-<select id="tipoSaldoInicial" onchange="salvarConfig()">
-  <option value="positivo">Crédito</option>
-  <option value="negativo">Débito</option>
-</select>
-<br><br>
-<label>Horas acumuladas:</label>
-<input type="time" id="saldoInicialHora" value="00:00" onchange="salvarConfig()">
-</div>
+<button onclick="addRow()">Adicionar Dia</button>
+<button onclick="baterPonto()">Bater ponto</button>
+<button class="danger" onclick="limpar()">Limpar tudo</button>
 
-<div class="card">
-<h2>Bater ponto automático</h2>
-<button onclick="baterPonto()">Bater ponto agora</button>
-<p id="statusHoje">Nenhum registro hoje.</p>
-</div>
-
-<div class="card">
-<h2>Batidas de ponto</h2>
-<button onclick="adicionarDia()">Adicionar dia</button>
-<button class="secondary" onclick="exportarCSV()">Exportar CSV</button>
-<button class="danger" onclick="limparTudo()">Limpar tudo</button>
-
-<div class="wrap">
-<table>
-<thead>
+<table id="tabela">
 <tr>
 <th>Data</th>
 <th>Entrada</th>
 <th>Saída almoço</th>
-<th>Retorno almoço</th>
+<th>Retorno</th>
 <th>Saída final</th>
 <th>Trabalhadas</th>
 <th>Abono</th>
 <th>Horas abonadas</th>
-<th>Consideradas</th>
 <th>Saldo</th>
-<th>Obs</th>
 <th>Ação</th>
 </tr>
-</thead>
-<tbody id="tabela"></tbody>
 </table>
-</div>
-</div>
 
 <script>
-const JORNADA = 480;
-const TOLERANCIA = 10;
-const LIMITE_CREDITO = 60;
-const STORAGE = "controle_horas_v3_funcional";
-const CONFIG = "controle_horas_config_v3_funcional";
+
+const jornada = 480;
+const STORAGE = "controle_horas_ok";
 
 let registros = JSON.parse(localStorage.getItem(STORAGE)) || [];
-let config = JSON.parse(localStorage.getItem(CONFIG)) || {
-  tipoSaldoInicial: "positivo",
-  saldoInicialHora: "00:00"
-};
 
-function salvar() {
+function salvar(){
   localStorage.setItem(STORAGE, JSON.stringify(registros));
 }
 
-function salvarConfig() {
-  config.tipoSaldoInicial = document.getElementById("tipoSaldoInicial").value;
-  config.saldoInicialHora = document.getElementById("saldoInicialHora").value || "00:00";
-  localStorage.setItem(CONFIG, JSON.stringify(config));
-  renderizar();
-}
-
-function aplicarConfig() {
-  document.getElementById("tipoSaldoInicial").value = config.tipoSaldoInicial;
-  document.getElementById("saldoInicialHora").value = config.saldoInicialHora;
-}
-
-function hoje() {
+function hoje(){
   return new Date().toISOString().slice(0,10);
 }
 
-function horaAgora() {
-  const d = new Date();
-  return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+function horaAgora(){
+  let d = new Date();
+  return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
 }
 
-function idNovo() {
-  return "id_" + Date.now() + "_" + Math.floor(Math.random()*100000);
+function paraMin(h){
+  if(!h) return null;
+  let [hh,mm] = h.split(":");
+  return (+hh)*60 + (+mm);
 }
 
-function novoRegistro(data = hoje()) {
-  return {
-    id: idNovo(),
-    data: data,
-    entrada: "",
-    saidaAlmoco: "",
-    retornoAlmoco: "",
-    saidaFinal: "",
-    tipoAbono: "nenhum",
-    horasAbonadas: "00:00",
-    obs: ""
-  };
+function fmt(min){
+  if(min==null) return "-";
+  let h = Math.floor(Math.abs(min)/60);
+  let m = Math.abs(min)%60;
+  return (min<0?"-":"+") + String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
 }
 
-function paraMin(hora) {
-  if (!hora) return null;
-  const [h,m] = hora.split(":").map(Number);
-  return h*60 + m;
-}
+function calcular(reg){
+  if(reg.tipoAbono=="integral") return 0;
 
-function fmt(min) {
-  if (min === null) return "—";
-  const abs = Math.abs(min);
-  const h = Math.floor(abs/60);
-  const m = abs % 60;
-  return String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
-}
+  let e=paraMin(reg.entrada);
+  let s1=paraMin(reg.saidaAlmoco);
+  let r=paraMin(reg.retorno);
+  let s2=paraMin(reg.saidaFinal);
 
-function fmtSaldo(min) {
-  if (min === null) return "—";
-  return (min < 0 ? "-" : "+") + fmt(min);
-}
+  if([e,s1,r,s2].includes(null)) return null;
 
-function classe(min) {
-  if (min > 0) return "pos";
-  if (min < 0) return "neg";
-  return "zero";
-}
+  let total = (s1-e)+(s2-r);
 
-function saldoInicialMin() {
-  const min = paraMin(config.saldoInicialHora || "00:00") || 0;
-  return config.tipoSaldoInicial === "negativo" ? -min : min;
-}
-
-function horasTrabalhadas(reg) {
-  if (reg.tipoAbono === "integral" && !reg.entrada && !reg.saidaAlmoco && !reg.retornoAlmoco && !reg.saidaFinal) {
-    return 0;
+  if(reg.tipoAbono=="parcial"){
+    total += paraMin(reg.horasAbonadas)||0;
   }
 
-  const e = paraMin(reg.entrada);
-  const s1 = paraMin(reg.saidaAlmoco);
-  const r = paraMin(reg.retornoAlmoco);
-  const s2 = paraMin(reg.saidaFinal);
+  let diff = total - jornada;
 
-  const preenchidos = [e,s1,r,s2].filter(v => v !== null).length;
-  if (preenchidos === 0) return null;
-  if (preenchidos < 4) return null;
-  if (s1 <= e || r <= s1 || s2 <= r) return null;
+  if(Math.abs(diff)<=10) return 0;
+  if(diff>60) return 60;
 
-  return (s1 - e) + (s2 - r);
-}
-
-function horasConsideradas(reg) {
-  if (reg.tipoAbono === "integral") return JORNADA;
-
-  const trab = horasTrabalhadas(reg);
-  if (trab === null) return null;
-
-  const abono = reg.tipoAbono === "parcial" ? (paraMin(reg.horasAbonadas || "00:00") || 0) : 0;
-  return Math.min(trab + abono, JORNADA + LIMITE_CREDITO);
-}
-
-function saldoDia(reg) {
-  const cons = horasConsideradas(reg);
-  if (cons === null) return null;
-
-  const diff = cons - JORNADA;
-
-  if (Math.abs(diff) <= TOLERANCIA) return 0;
-  if (diff > 0) return Math.min(diff, LIMITE_CREDITO);
   return diff;
 }
 
-function adicionarDia() {
-  registros.push(novoRegistro());
+function addRow(){
+  registros.push({
+    id: Date.now(),
+    data: hoje(),
+    entrada:"",
+    saidaAlmoco:"",
+    retorno:"",
+    saidaFinal:"",
+    tipoAbono:"nenhum",
+    horasAbonadas:"00:00"
+  });
   salvar();
-  renderizar();
+  render();
 }
 
-function remover(id) {
-  registros = registros.filter(r => r.id !== id);
+function remover(id){
+  registros = registros.filter(r=>r.id!=id);
   salvar();
-  renderizar();
+  render();
 }
 
-function limparTudo() {
-  if (!confirm("Apagar todos os registros?")) return;
-  registros = [];
+function limpar(){
+  if(!confirm("Apagar tudo?")) return;
+  registros=[];
   salvar();
-  renderizar();
+  render();
 }
 
-function atualizar(id, campo, valor) {
-  registros = registros.map(r => r.id === id ? {...r, [campo]:valor} : r);
+function atualizar(id,campo,valor){
+  registros = registros.map(r=>{
+    if(r.id==id) r[campo]=valor;
+    return r;
+  });
   salvar();
-  renderizar();
+  render();
 }
 
-function baterPonto() {
-  let reg = registros.find(r => r.data === hoje());
-  if (!reg) {
-    reg = novoRegistro(hoje());
+function baterPonto(){
+  let reg = registros.find(r=>r.data==hoje());
+
+  if(!reg){
+    reg = {id:Date.now(),data:hoje(),entrada:"",saidaAlmoco:"",retorno:"",saidaFinal:"",tipoAbono:"nenhum",horasAbonadas:"00:00"};
     registros.push(reg);
   }
 
-  const h = horaAgora();
+  let h = horaAgora();
 
-  if (!reg.entrada) reg.entrada = h;
-  else if (!reg.saidaAlmoco) reg.saidaAlmoco = h;
-  else if (!reg.retornoAlmoco) reg.retornoAlmoco = h;
-  else if (!reg.saidaFinal) reg.saidaFinal = h;
-  else alert("As 4 batidas de hoje já foram preenchidas.");
+  if(!reg.entrada) reg.entrada=h;
+  else if(!reg.saidaAlmoco) reg.saidaAlmoco=h;
+  else if(!reg.retorno) reg.retorno=h;
+  else if(!reg.saidaFinal) reg.saidaFinal=h;
+  else alert("Já completou o dia");
 
   salvar();
-  renderizar();
+  render();
 }
 
-function renderizarHoje() {
-  const reg = registros.find(r => r.data === hoje());
-  if (!reg) {
-    document.getElementById("statusHoje").innerText = "Nenhum registro hoje.";
-    return;
-  }
+function render(){
 
-  document.getElementById("statusHoje").innerText =
-    "Entrada: " + (reg.entrada || "—") +
-    " | Saída almoço: " + (reg.saidaAlmoco || "—") +
-    " | Retorno: " + (reg.retornoAlmoco || "—") +
-    " | Saída final: " + (reg.saidaFinal || "—");
-}
+  let tabela = document.getElementById("tabela");
+  tabela.innerHTML = tabela.rows[0].outerHTML;
 
-function renderizar() {
-  registros = registros.map(r => ({tipoAbono:"nenhum", horasAbonadas:"00:00", obs:"", ...r}));
-  registros.sort((a,b) => new Date(a.data) - new Date(b.data));
+  let saldoGeral = 0;
 
-  const tabela = document.getElementById("tabela");
-  tabela.innerHTML = "";
+  registros.forEach(reg=>{
 
-  let totalHoras = 0;
-  let saldoPeriodo = 0;
+    let saldo = calcular(reg);
+    if(saldo!=null) saldoGeral+=saldo;
 
-  registros.forEach(reg => {
-    const trab = horasTrabalhadas(reg);
-    const cons = horasConsideradas(reg);
-    const saldo = saldoDia(reg);
-
-    if (trab !== null) totalHoras += trab;
-    if (saldo !== null) saldoPeriodo += saldo;
-
-    const tr = document.createElement("tr");
+    let tr = tabela.insertRow();
 
     tr.innerHTML = `
-      <td><input type="date" value="${reg.data}" onchange="atualizar('${reg.id}','data',this.value)"></td>
-      <td><input type="time" value="${reg.entrada}" onchange="atualizar('${reg.id}','entrada',this.value)"></td>
-      <td><input type="time" value="${reg.saidaAlmoco}" onchange="atualizar('${reg.id}','saidaAlmoco',this.value)"></td>
-      <td><input type="time" value="${reg.retornoAlmoco}" onchange="atualizar('${reg.id}','retornoAlmoco',this.value)"></td>
-      <td><input type="time" value="${reg.saidaFinal}" onchange="atualizar('${reg.id}','saidaFinal',this.value)"></td>
-      <td>${fmt(trab)}</td>
-      <td>
-        <select onchange="atualizar('${reg.id}','tipoAbono',this.value)">
-          <option value="nenhum" ${reg.tipoAbono === "nenhum" ? "selected" : ""}>Sem abono</option>
-          <option value="integral" ${reg.tipoAbono === "integral" ? "selected" : ""}>Ponto abonado</option>
-          <option value="parcial" ${reg.tipoAbono === "parcial" ? "selected" : ""}>Horas abonadas</option>
-        </select>
-      </td>
-      <td><input type="time" value="${reg.horasAbonadas}" ${reg.tipoAbono === "parcial" ? "" : "disabled"} onchange="atualizar('${reg.id}','horasAbonadas',this.value)"></td>
-      <td>${fmt(cons)}</td>
-      <td class="${classe(saldo)}">${fmtSaldo(saldo)}</td>
-      <td><input type="text" value="${reg.obs}" onchange="atualizar('${reg.id}','obs',this.value)"></td>
-      <td><button class="danger" onclick="remover('${reg.id}')">Excluir</button></td>
-    `;
-
-    tabela.appendChild(tr);
-  });
-
-  const inicial = saldoInicialMin();
-  const geral = inicial + saldoPeriodo;
-
-  document.getElementById("dias").innerText = registros.length;
-  document.getElementById("horasTotal").innerText = fmt(totalHoras);
-  document.getElementById("saldoInicialTela").innerText = fmtSaldo(inicial);
-  document.getElementById("saldoGeral").innerText = fmtSaldo(geral);
-  document.getElementById("saldoGeral").className = classe(geral);
-
-  renderizarHoje();
-}
-
-function exportarCSV() {
-  let csv = "Data;Entrada;Saida Almoco;Retorno Almoco;Saida Final;Trabalhadas;Abono;Horas Abonadas;Consideradas;Saldo;Obs
-";
-
-  registros.forEach(r => {
-    csv += `${r.data};${r.entrada};${r.saidaAlmoco};${r.retornoAlmoco};${r.saidaFinal};${fmt(horasTrabalhadas(r))};${r.tipoAbono};${r.horasAbonadas};${fmt(horasConsideradas(r))};${fmtSaldo(saldoDia(r))};${(r.obs || "").replaceAll(";", ",")}
+<td><input type="date" value="${reg.data}" onchange="atualizar(${reg.id},'data',this.value)"></td>
+<td><input type="time" value="${reg.entrada}" onchange="atualizar(${reg.id},'entrada',this.value)"></td>
+<td><input type="time" value="${reg.saidaAlmoco}" onchange="atualizar(${reg.id},'saidaAlmoco',this.value)"></td>
+<td><input type="time" value="${reg.retorno}" onchange="atualizar(${reg.id},'retorno',this.value)"></td>
+<td><input type="time" value="${reg.saidaFinal}" onchange="atualizar(${reg.id},'saidaFinal',this.value)"></td>
+<td>-</td>
+<td>
+<select onchange="atualizar(${reg.id},'tipoAbono',this.value)">
+<option value="nenhum">Sem</option>
+<option value="integral">Abonado</option>
+<option value="parcial">Parcial</option>
+</select>
+</td>
+<td><input type="time" value="${reg.horasAbonadas}" onchange="atualizar(${reg.id},'horasAbonadas',this.value)"></td>
+<td class="${saldo>0?'pos':saldo<0?'neg':''}">${fmt(saldo)}</td>
+<td><button onclick="remover(${reg.id})">X</button></td>
 `;
   });
 
-  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "controle_horas_v3_funcional.csv";
-  a.click();
-  URL.revokeObjectURL(url);
+  document.getElementById("saldoGeral").innerText = fmt(saldoGeral);
 }
 
-if (registros.length === 0) {
-  registros.push({
-    id: idNovo(),
-    data: hoje(),
-    entrada: "07:30",
-    saidaAlmoco: "11:30",
-    retornoAlmoco: "12:30",
-    saidaFinal: "17:30",
-    tipoAbono: "nenhum",
-    horasAbonadas: "00:00",
-    obs: "Modelo padrão"
-  });
-  salvar();
-}
+render();
 
-aplicarConfig();
-renderizar();
 </script>
 
 </body>
