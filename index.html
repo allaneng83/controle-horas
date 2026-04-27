@@ -1,248 +1,362 @@
-import React, { useMemo, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Trash2, Plus, Clock, CalendarDays } from "lucide-react";
 
-const JORNADA_PADRAO_MIN = 8 * 60;
-const TOLERANCIA_MIN = 10;
-const LIMITE_CREDITO_DIA_MIN = 60;
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Horas V3 Funcional</title>
+<style>
+body { font-family: Arial; background:#f4f4f4; padding:20px; }
+h1 { margin-bottom:5px; }
+button { padding:10px; margin:5px; cursor:pointer; border:0; border-radius:8px; background:#111827; color:white; font-weight:bold; }
+button.danger { background:#dc2626; }
+button.secondary { background:#e5e7eb; color:#111827; }
+.card { background:white; padding:15px; margin:10px 0; border-radius:12px; box-shadow:0 2px 6px #ccc; }
+.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+table { width:100%; background:white; border-collapse:collapse; margin-top:10px; min-width:1150px; }
+th, td { border:1px solid #ccc; padding:8px; text-align:center; }
+input, select { padding:6px; width:100%; box-sizing:border-box; }
+.wrap { overflow-x:auto; }
+.pos { color:green; font-weight:bold; }
+.neg { color:red; font-weight:bold; }
+.zero { color:#333; font-weight:bold; }
+@media(max-width:800px){ .grid{grid-template-columns:1fr;} body{padding:10px;} }
+</style>
+</head>
+<body>
 
-function toMinutes(time) {
-  if (!time) return null;
-  const [h, m] = time.split(":").map(Number);
-  if (Number.isNaN(h) || Number.isNaN(m)) return null;
-  return h * 60 + m;
+<h1>Controle de Horas V3 Funcional</h1>
+<p>Jornada: 8h. Faixa neutra: 7h50 a 8h10. Crédito máximo diário: +1h.</p>
+
+<div class="grid">
+  <div class="card"><strong>Dias</strong><br><span id="dias">0</span></div>
+  <div class="card"><strong>Horas trabalhadas</strong><br><span id="horasTotal">00:00</span></div>
+  <div class="card"><strong>Saldo inicial</strong><br><span id="saldoInicialTela">+00:00</span></div>
+  <div class="card"><strong>Saldo geral</strong><br><span id="saldoGeral">+00:00</span></div>
+</div>
+
+<div class="card">
+<h2>Saldo acumulado inicial</h2>
+<label>Tipo:</label>
+<select id="tipoSaldoInicial" onchange="salvarConfig()">
+  <option value="positivo">Crédito</option>
+  <option value="negativo">Débito</option>
+</select>
+<br><br>
+<label>Horas acumuladas:</label>
+<input type="time" id="saldoInicialHora" value="00:00" onchange="salvarConfig()">
+</div>
+
+<div class="card">
+<h2>Bater ponto automático</h2>
+<button onclick="baterPonto()">Bater ponto agora</button>
+<p id="statusHoje">Nenhum registro hoje.</p>
+</div>
+
+<div class="card">
+<h2>Batidas de ponto</h2>
+<button onclick="adicionarDia()">Adicionar dia</button>
+<button class="secondary" onclick="exportarCSV()">Exportar CSV</button>
+<button class="danger" onclick="limparTudo()">Limpar tudo</button>
+
+<div class="wrap">
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Entrada</th>
+<th>Saída almoço</th>
+<th>Retorno almoço</th>
+<th>Saída final</th>
+<th>Trabalhadas</th>
+<th>Abono</th>
+<th>Horas abonadas</th>
+<th>Consideradas</th>
+<th>Saldo</th>
+<th>Obs</th>
+<th>Ação</th>
+</tr>
+</thead>
+<tbody id="tabela"></tbody>
+</table>
+</div>
+</div>
+
+<script>
+const JORNADA = 480;
+const TOLERANCIA = 10;
+const LIMITE_CREDITO = 60;
+const STORAGE = "controle_horas_v3_funcional";
+const CONFIG = "controle_horas_config_v3_funcional";
+
+let registros = JSON.parse(localStorage.getItem(STORAGE)) || [];
+let config = JSON.parse(localStorage.getItem(CONFIG)) || {
+  tipoSaldoInicial: "positivo",
+  saldoInicialHora: "00:00"
+};
+
+function salvar() {
+  localStorage.setItem(STORAGE, JSON.stringify(registros));
 }
 
-function formatMinutes(total) {
-  const sign = total < 0 ? "-" : "+";
-  const abs = Math.abs(total);
-  const h = Math.floor(abs / 60);
+function salvarConfig() {
+  config.tipoSaldoInicial = document.getElementById("tipoSaldoInicial").value;
+  config.saldoInicialHora = document.getElementById("saldoInicialHora").value || "00:00";
+  localStorage.setItem(CONFIG, JSON.stringify(config));
+  renderizar();
+}
+
+function aplicarConfig() {
+  document.getElementById("tipoSaldoInicial").value = config.tipoSaldoInicial;
+  document.getElementById("saldoInicialHora").value = config.saldoInicialHora;
+}
+
+function hoje() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function horaAgora() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+
+function idNovo() {
+  return "id_" + Date.now() + "_" + Math.floor(Math.random()*100000);
+}
+
+function novoRegistro(data = hoje()) {
+  return {
+    id: idNovo(),
+    data: data,
+    entrada: "",
+    saidaAlmoco: "",
+    retornoAlmoco: "",
+    saidaFinal: "",
+    tipoAbono: "nenhum",
+    horasAbonadas: "00:00",
+    obs: ""
+  };
+}
+
+function paraMin(hora) {
+  if (!hora) return null;
+  const [h,m] = hora.split(":").map(Number);
+  return h*60 + m;
+}
+
+function fmt(min) {
+  if (min === null) return "—";
+  const abs = Math.abs(min);
+  const h = Math.floor(abs/60);
   const m = abs % 60;
-  return `${sign}${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  return String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
 }
 
-function formatDuration(total) {
-  const abs = Math.abs(total);
-  const h = Math.floor(abs / 60);
-  const m = abs % 60;
-  return `${h}h${String(m).padStart(2, "0")}`;
+function fmtSaldo(min) {
+  if (min === null) return "—";
+  return (min < 0 ? "-" : "+") + fmt(min);
 }
 
-function calcWorkedMinutes(row) {
-  const entrada = toMinutes(row.entrada);
-  const saidaAlmoco = toMinutes(row.saidaAlmoco);
-  const retornoAlmoco = toMinutes(row.retornoAlmoco);
-  const saidaFinal = toMinutes(row.saidaFinal);
+function classe(min) {
+  if (min > 0) return "pos";
+  if (min < 0) return "neg";
+  return "zero";
+}
 
-  if ([entrada, saidaAlmoco, retornoAlmoco, saidaFinal].some((v) => v === null)) {
-    return null;
+function saldoInicialMin() {
+  const min = paraMin(config.saldoInicialHora || "00:00") || 0;
+  return config.tipoSaldoInicial === "negativo" ? -min : min;
+}
+
+function horasTrabalhadas(reg) {
+  if (reg.tipoAbono === "integral" && !reg.entrada && !reg.saidaAlmoco && !reg.retornoAlmoco && !reg.saidaFinal) {
+    return 0;
   }
 
-  const manha = saidaAlmoco - entrada;
-  const tarde = saidaFinal - retornoAlmoco;
+  const e = paraMin(reg.entrada);
+  const s1 = paraMin(reg.saidaAlmoco);
+  const r = paraMin(reg.retornoAlmoco);
+  const s2 = paraMin(reg.saidaFinal);
 
-  if (manha < 0 || tarde < 0) return null;
+  const preenchidos = [e,s1,r,s2].filter(v => v !== null).length;
+  if (preenchidos === 0) return null;
+  if (preenchidos < 4) return null;
+  if (s1 <= e || r <= s1 || s2 <= r) return null;
 
-  return manha + tarde;
+  return (s1 - e) + (s2 - r);
 }
 
-function calcBankMinutes(worked) {
-  if (worked === null) return null;
+function horasConsideradas(reg) {
+  if (reg.tipoAbono === "integral") return JORNADA;
 
-  const diff = worked - JORNADA_PADRAO_MIN;
+  const trab = horasTrabalhadas(reg);
+  if (trab === null) return null;
 
-  if (Math.abs(diff) <= TOLERANCIA_MIN) return 0;
+  const abono = reg.tipoAbono === "parcial" ? (paraMin(reg.horasAbonadas || "00:00") || 0) : 0;
+  return Math.min(trab + abono, JORNADA + LIMITE_CREDITO);
+}
 
-  if (diff > 0) return Math.min(diff, LIMITE_CREDITO_DIA_MIN);
+function saldoDia(reg) {
+  const cons = horasConsideradas(reg);
+  if (cons === null) return null;
 
+  const diff = cons - JORNADA;
+
+  if (Math.abs(diff) <= TOLERANCIA) return 0;
+  if (diff > 0) return Math.min(diff, LIMITE_CREDITO);
   return diff;
 }
 
-const emptyRow = () => ({
-  id: crypto.randomUUID(),
-  data: new Date().toISOString().slice(0, 10),
-  entrada: "07:30",
-  saidaAlmoco: "11:30",
-  retornoAlmoco: "12:30",
-  saidaFinal: "17:30",
-});
-
-export default function ControleHorasApp() {
-  const [rows, setRows] = useState([emptyRow()]);
-
-  const results = useMemo(() => {
-    return rows.map((row) => {
-      const worked = calcWorkedMinutes(row);
-      const bank = calcBankMinutes(worked);
-      return { ...row, worked, bank };
-    });
-  }, [rows]);
-
-  const totalBank = useMemo(() => {
-    return results.reduce((acc, row) => acc + (row.bank ?? 0), 0);
-  }, [results]);
-
-  const totalWorked = useMemo(() => {
-    return results.reduce((acc, row) => acc + (row.worked ?? 0), 0);
-  }, [results]);
-
-  function updateRow(id, field, value) {
-    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
-  }
-
-  function addRow() {
-    setRows((prev) => [...prev, emptyRow()]);
-  }
-
-  function removeRow(id) {
-    setRows((prev) => prev.filter((row) => row.id !== id));
-  }
-
-  function clearRows() {
-    setRows([emptyRow()]);
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Controle de Horas Trabalhadas</h1>
-          <p className="text-slate-600">
-            Jornada padrão: 8h líquidas por dia. Tolerância: 7h50 a 8h10 não gera crédito nem débito. Crédito máximo diário: 1h.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="rounded-2xl shadow-sm">
-            <CardContent className="flex items-center gap-4 p-5">
-              <Clock className="h-9 w-9 text-slate-700" />
-              <div>
-                <p className="text-sm text-slate-500">Horas lançadas</p>
-                <p className="text-2xl font-bold text-slate-900">{formatDuration(totalWorked)}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl shadow-sm">
-            <CardContent className="flex items-center gap-4 p-5">
-              <CalendarDays className="h-9 w-9 text-slate-700" />
-              <div>
-                <p className="text-sm text-slate-500">Dias registrados</p>
-                <p className="text-2xl font-bold text-slate-900">{rows.length}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl shadow-sm">
-            <CardContent className="p-5">
-              <p className="text-sm text-slate-500">Saldo geral do banco</p>
-              <p className={`text-3xl font-bold ${totalBank >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                {formatMinutes(totalBank)}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="rounded-2xl shadow-sm">
-          <CardContent className="space-y-4 p-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">Batidas de ponto</h2>
-                <p className="text-sm text-slate-500">Insira as quatro batidas do dia para calcular a parcial e o saldo acumulado.</p>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={addRow} className="rounded-xl">
-                  <Plus className="mr-2 h-4 w-4" /> Adicionar dia
-                </Button>
-                <Button variant="outline" onClick={clearRows} className="rounded-xl">
-                  Limpar
-                </Button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[980px] border-separate border-spacing-y-2">
-                <thead>
-                  <tr className="text-left text-sm text-slate-500">
-                    <th className="px-3 py-2">Data</th>
-                    <th className="px-3 py-2">Entrada</th>
-                    <th className="px-3 py-2">Saída almoço</th>
-                    <th className="px-3 py-2">Retorno almoço</th>
-                    <th className="px-3 py-2">Saída final</th>
-                    <th className="px-3 py-2">Horas do dia</th>
-                    <th className="px-3 py-2">Saldo do dia</th>
-                    <th className="px-3 py-2">Ação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.map((row) => {
-                    const invalid = row.worked === null;
-                    return (
-                      <tr key={row.id} className="rounded-xl bg-white shadow-sm">
-                        <td className="px-3 py-3">
-                          <Input type="date" value={row.data} onChange={(e) => updateRow(row.id, "data", e.target.value)} />
-                        </td>
-                        <td className="px-3 py-3">
-                          <Input type="time" value={row.entrada} onChange={(e) => updateRow(row.id, "entrada", e.target.value)} />
-                        </td>
-                        <td className="px-3 py-3">
-                          <Input type="time" value={row.saidaAlmoco} onChange={(e) => updateRow(row.id, "saidaAlmoco", e.target.value)} />
-                        </td>
-                        <td className="px-3 py-3">
-                          <Input type="time" value={row.retornoAlmoco} onChange={(e) => updateRow(row.id, "retornoAlmoco", e.target.value)} />
-                        </td>
-                        <td className="px-3 py-3">
-                          <Input type="time" value={row.saidaFinal} onChange={(e) => updateRow(row.id, "saidaFinal", e.target.value)} />
-                        </td>
-                        <td className="px-3 py-3 font-semibold text-slate-800">
-                          {invalid ? "Inválido" : formatDuration(row.worked)}
-                        </td>
-                        <td className="px-3 py-3">
-                          {invalid ? (
-                            <span className="text-slate-400">—</span>
-                          ) : (
-                            <span className={`rounded-full px-3 py-1 text-sm font-bold ${row.bank > 0 ? "bg-emerald-100 text-emerald-800" : row.bank < 0 ? "bg-red-100 text-red-800" : "bg-slate-100 text-slate-700"}`}>
-                              {formatMinutes(row.bank)}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3">
-                          <Button variant="ghost" size="icon" onClick={() => removeRow(row.id)} disabled={rows.length === 1}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl shadow-sm">
-          <CardContent className="space-y-3 p-5">
-            <h2 className="text-lg font-semibold text-slate-900">Regra aplicada</h2>
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-3">
-              <div className="rounded-xl bg-white p-4 shadow-sm">
-                <Label className="text-slate-900">Débito</Label>
-                <p>Até 7h49 trabalhadas: lança débito pelo tempo real abaixo de 8h.</p>
-              </div>
-              <div className="rounded-xl bg-white p-4 shadow-sm">
-                <Label className="text-slate-900">Faixa neutra</Label>
-                <p>De 7h50 até 8h10: saldo do dia fica zerado.</p>
-              </div>
-              <div className="rounded-xl bg-white p-4 shadow-sm">
-                <Label className="text-slate-900">Crédito</Label>
-                <p>A partir de 8h11: lança crédito pelo tempo real acima de 8h, limitado a +1h por dia.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+function adicionarDia() {
+  registros.push(novoRegistro());
+  salvar();
+  renderizar();
 }
+
+function remover(id) {
+  registros = registros.filter(r => r.id !== id);
+  salvar();
+  renderizar();
+}
+
+function limparTudo() {
+  if (!confirm("Apagar todos os registros?")) return;
+  registros = [];
+  salvar();
+  renderizar();
+}
+
+function atualizar(id, campo, valor) {
+  registros = registros.map(r => r.id === id ? {...r, [campo]:valor} : r);
+  salvar();
+  renderizar();
+}
+
+function baterPonto() {
+  let reg = registros.find(r => r.data === hoje());
+  if (!reg) {
+    reg = novoRegistro(hoje());
+    registros.push(reg);
+  }
+
+  const h = horaAgora();
+
+  if (!reg.entrada) reg.entrada = h;
+  else if (!reg.saidaAlmoco) reg.saidaAlmoco = h;
+  else if (!reg.retornoAlmoco) reg.retornoAlmoco = h;
+  else if (!reg.saidaFinal) reg.saidaFinal = h;
+  else alert("As 4 batidas de hoje já foram preenchidas.");
+
+  salvar();
+  renderizar();
+}
+
+function renderizarHoje() {
+  const reg = registros.find(r => r.data === hoje());
+  if (!reg) {
+    document.getElementById("statusHoje").innerText = "Nenhum registro hoje.";
+    return;
+  }
+
+  document.getElementById("statusHoje").innerText =
+    "Entrada: " + (reg.entrada || "—") +
+    " | Saída almoço: " + (reg.saidaAlmoco || "—") +
+    " | Retorno: " + (reg.retornoAlmoco || "—") +
+    " | Saída final: " + (reg.saidaFinal || "—");
+}
+
+function renderizar() {
+  registros = registros.map(r => ({tipoAbono:"nenhum", horasAbonadas:"00:00", obs:"", ...r}));
+  registros.sort((a,b) => new Date(a.data) - new Date(b.data));
+
+  const tabela = document.getElementById("tabela");
+  tabela.innerHTML = "";
+
+  let totalHoras = 0;
+  let saldoPeriodo = 0;
+
+  registros.forEach(reg => {
+    const trab = horasTrabalhadas(reg);
+    const cons = horasConsideradas(reg);
+    const saldo = saldoDia(reg);
+
+    if (trab !== null) totalHoras += trab;
+    if (saldo !== null) saldoPeriodo += saldo;
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td><input type="date" value="${reg.data}" onchange="atualizar('${reg.id}','data',this.value)"></td>
+      <td><input type="time" value="${reg.entrada}" onchange="atualizar('${reg.id}','entrada',this.value)"></td>
+      <td><input type="time" value="${reg.saidaAlmoco}" onchange="atualizar('${reg.id}','saidaAlmoco',this.value)"></td>
+      <td><input type="time" value="${reg.retornoAlmoco}" onchange="atualizar('${reg.id}','retornoAlmoco',this.value)"></td>
+      <td><input type="time" value="${reg.saidaFinal}" onchange="atualizar('${reg.id}','saidaFinal',this.value)"></td>
+      <td>${fmt(trab)}</td>
+      <td>
+        <select onchange="atualizar('${reg.id}','tipoAbono',this.value)">
+          <option value="nenhum" ${reg.tipoAbono === "nenhum" ? "selected" : ""}>Sem abono</option>
+          <option value="integral" ${reg.tipoAbono === "integral" ? "selected" : ""}>Ponto abonado</option>
+          <option value="parcial" ${reg.tipoAbono === "parcial" ? "selected" : ""}>Horas abonadas</option>
+        </select>
+      </td>
+      <td><input type="time" value="${reg.horasAbonadas}" ${reg.tipoAbono === "parcial" ? "" : "disabled"} onchange="atualizar('${reg.id}','horasAbonadas',this.value)"></td>
+      <td>${fmt(cons)}</td>
+      <td class="${classe(saldo)}">${fmtSaldo(saldo)}</td>
+      <td><input type="text" value="${reg.obs}" onchange="atualizar('${reg.id}','obs',this.value)"></td>
+      <td><button class="danger" onclick="remover('${reg.id}')">Excluir</button></td>
+    `;
+
+    tabela.appendChild(tr);
+  });
+
+  const inicial = saldoInicialMin();
+  const geral = inicial + saldoPeriodo;
+
+  document.getElementById("dias").innerText = registros.length;
+  document.getElementById("horasTotal").innerText = fmt(totalHoras);
+  document.getElementById("saldoInicialTela").innerText = fmtSaldo(inicial);
+  document.getElementById("saldoGeral").innerText = fmtSaldo(geral);
+  document.getElementById("saldoGeral").className = classe(geral);
+
+  renderizarHoje();
+}
+
+function exportarCSV() {
+  let csv = "Data;Entrada;Saida Almoco;Retorno Almoco;Saida Final;Trabalhadas;Abono;Horas Abonadas;Consideradas;Saldo;Obs
+";
+
+  registros.forEach(r => {
+    csv += `${r.data};${r.entrada};${r.saidaAlmoco};${r.retornoAlmoco};${r.saidaFinal};${fmt(horasTrabalhadas(r))};${r.tipoAbono};${r.horasAbonadas};${fmt(horasConsideradas(r))};${fmtSaldo(saldoDia(r))};${(r.obs || "").replaceAll(";", ",")}
+`;
+  });
+
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "controle_horas_v3_funcional.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+if (registros.length === 0) {
+  registros.push({
+    id: idNovo(),
+    data: hoje(),
+    entrada: "07:30",
+    saidaAlmoco: "11:30",
+    retornoAlmoco: "12:30",
+    saidaFinal: "17:30",
+    tipoAbono: "nenhum",
+    horasAbonadas: "00:00",
+    obs: "Modelo padrão"
+  });
+  salvar();
+}
+
+aplicarConfig();
+renderizar();
+</script>
+
+</body>
+</html>
