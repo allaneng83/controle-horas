@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle de Horas V3</title>
+<title>Controle de Horas V4</title>
 <style>
 :root {
   --bg: #f3f4f6;
@@ -63,8 +63,8 @@ input, select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-rad
 <body>
 <div class="container">
   <div class="header">
-    <h1>Controle de Horas Trabalhadas — V3</h1>
-    <p class="subtitle">Jornada padrão: 8h líquidas. Faixa neutra: 7h50 a 8h10. Crédito máximo diário: +1h. Agora com saldo inicial e abono.</p>
+    <h1>Controle de Horas Trabalhadas — V4</h1>
+    <p class="subtitle">Jornada padrão: 8h líquidas. Faixa neutra: 7h50 a 8h10. Crédito máximo diário: +1h. Agora com saldo inicial, abono, resumo mensal e validações.</p>
   </div>
 
   <div class="cards">
@@ -94,6 +94,22 @@ input, select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-rad
         <input type="time" id="saldoInicialHora" value="00:00" onchange="salvarConfig()">
       </div>
       <button class="secondary" onclick="zerarSaldoInicial()">Zerar saldo inicial</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Resumo mensal</h2>
+        <p class="subtitle">Escolha o mês para ver o saldo apenas do período selecionado.</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="box">
+        <label>Mês de referência</label>
+        <input type="month" id="mesReferencia" onchange="salvarConfig()">
+      </div>
+      <div class="box" id="resumoMensal">Resumo mensal indisponível.</div>
     </div>
   </div>
 
@@ -138,6 +154,7 @@ input, select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-rad
             <th>Horas abonadas</th>
             <th>Horas consideradas</th>
             <th>Saldo do dia</th>
+            <th>Status</th>
             <th>Observação</th>
             <th>Ação</th>
           </tr>
@@ -172,23 +189,28 @@ let config = carregarConfig();
 function carregarDados() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
 }
+function mesAtualYYYYMM() {
+  return new Date().toISOString().slice(0, 7);
+}
 function carregarConfig() {
-  try { return JSON.parse(localStorage.getItem(CONFIG_KEY)) || { tipoSaldoInicial: "positivo", saldoInicialHora: "00:00" }; }
-  catch { return { tipoSaldoInicial: "positivo", saldoInicialHora: "00:00" }; }
+  try { return JSON.parse(localStorage.getItem(CONFIG_KEY)) || { tipoSaldoInicial: "positivo", saldoInicialHora: "00:00", mesReferencia: mesAtualYYYYMM() }; }
+  catch { return { tipoSaldoInicial: "positivo", saldoInicialHora: "00:00", mesReferencia: mesAtualYYYYMM() }; }
 }
 function salvarDados() { localStorage.setItem(STORAGE_KEY, JSON.stringify(registros)); }
 function salvarConfig() {
   config.tipoSaldoInicial = document.getElementById("tipoSaldoInicial").value;
   config.saldoInicialHora = document.getElementById("saldoInicialHora").value || "00:00";
+  config.mesReferencia = document.getElementById("mesReferencia").value || mesAtualYYYYMM();
   localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
   renderizar();
 }
 function aplicarConfigNaTela() {
   document.getElementById("tipoSaldoInicial").value = config.tipoSaldoInicial || "positivo";
   document.getElementById("saldoInicialHora").value = config.saldoInicialHora || "00:00";
+  document.getElementById("mesReferencia").value = config.mesReferencia || mesAtualYYYYMM();
 }
 function zerarSaldoInicial() {
-  config = { tipoSaldoInicial: "positivo", saldoInicialHora: "00:00" };
+  config = { tipoSaldoInicial: "positivo", saldoInicialHora: "00:00", mesReferencia: mesAtualYYYYMM() };
   localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
   aplicarConfigNaTela();
   renderizar();
@@ -211,16 +233,27 @@ function saldoInicialMinutos() {
   const min = paraMinutos(config.saldoInicialHora || "00:00") || 0;
   return config.tipoSaldoInicial === "negativo" ? -min : min;
 }
-function calcularHorasDia(reg) {
+function validarRegistro(reg) {
   const entrada = paraMinutos(reg.entrada);
   const saidaAlmoco = paraMinutos(reg.saidaAlmoco);
   const retornoAlmoco = paraMinutos(reg.retornoAlmoco);
   const saidaFinal = paraMinutos(reg.saidaFinal);
-  if ([entrada, saidaAlmoco, retornoAlmoco, saidaFinal].some(v => v === null)) return null;
-  const manha = saidaAlmoco - entrada;
-  const tarde = saidaFinal - retornoAlmoco;
-  if (manha < 0 || tarde < 0) return null;
-  return manha + tarde;
+
+  const preenchidos = [entrada, saidaAlmoco, retornoAlmoco, saidaFinal].filter(v => v !== null).length;
+  if (preenchidos > 0 && preenchidos < 4) return "Incompleto";
+  if (preenchidos === 0) return "Sem batidas";
+  if (saidaAlmoco <= entrada) return "Saída almoço deve ser maior que entrada";
+  if (retornoAlmoco <= saidaAlmoco) return "Retorno deve ser maior que saída almoço";
+  if (saidaFinal <= retornoAlmoco) return "Saída final deve ser maior que retorno";
+  return "OK";
+}
+function calcularHorasDia(reg) {
+  if (validarRegistro(reg) !== "OK") return null;
+  const entrada = paraMinutos(reg.entrada);
+  const saidaAlmoco = paraMinutos(reg.saidaAlmoco);
+  const retornoAlmoco = paraMinutos(reg.retornoAlmoco);
+  const saidaFinal = paraMinutos(reg.saidaFinal);
+  return (saidaAlmoco - entrada) + (saidaFinal - retornoAlmoco);
 }
 function calcularConsideradas(reg, horasTrabalhadas) {
   const tipo = reg.tipoAbono || "nenhum";
@@ -322,6 +355,7 @@ function renderizar() {
       <td><input type="time" value="${reg.horasAbonadas || "00:00"}" onchange="atualizarCampo('${reg.id}', 'horasAbonadas', this.value)" ${reg.tipoAbono === "parcial" ? "" : "disabled"}></td>
       <td><strong>${formatarHHMM(consideradas)}</strong></td>
       <td><span class="badge ${classeSaldo(saldo)}">${formatarSaldo(saldo)}</span></td>
+      <td><span class="badge ${validarRegistro(reg) === "OK" ? "pos" : validarRegistro(reg) === "Sem batidas" ? "zero" : "neg"}">${validarRegistro(reg)}</span></td>
       <td><input type="text" value="${reg.obs || ""}" placeholder="Opcional" onchange="atualizarCampo('${reg.id}', 'obs', this.value)"></td>
       <td><button class="danger small" onclick="removerDia('${reg.id}')">Excluir</button></td>
     `;
@@ -336,16 +370,40 @@ function renderizar() {
   saldoEl.textContent = formatarSaldo(saldoGeral);
   saldoEl.className = "card-value " + (saldoGeral > 0 ? "positive" : saldoGeral < 0 ? "negative" : "neutral");
   renderizarStatusHoje();
+  renderizarResumoMensal();
 }
+function renderizarResumoMensal() {
+  const el = document.getElementById("resumoMensal");
+  const mes = config.mesReferencia || mesAtualYYYYMM();
+  const regsMes = registros.filter(r => (r.data || "").slice(0, 7) === mes);
+  let horasMes = 0;
+  let saldoMes = 0;
+  let diasValidos = 0;
+  let diasComErro = 0;
+
+  regsMes.forEach(reg => {
+    const status = validarRegistro(reg);
+    const trabalhadas = calcularHorasDia(reg);
+    const consideradas = calcularConsideradas(reg, trabalhadas);
+    const saldo = calcularSaldoDia(consideradas);
+    if (trabalhadas !== null) { horasMes += trabalhadas; diasValidos++; }
+    if (saldo !== null) saldoMes += saldo;
+    if (status !== "OK" && status !== "Sem batidas") diasComErro++;
+  });
+
+  el.innerHTML = `<strong>Mês ${mes}</strong><br>Dias no mês: ${regsMes.length}<br>Dias válidos: ${diasValidos}<br>Dias com erro/incompletos: ${diasComErro}<br>Horas trabalhadas: ${formatarHHMM(horasMes)}<br>Saldo do mês: ${formatarSaldo(saldoMes)}`;
+}
+
 function exportarCSV() {
-  const linhas = [["Data", "Entrada", "Saida Almoco", "Retorno Almoco", "Saida Final", "Horas Trabalhadas", "Tipo Abono", "Horas Abonadas", "Horas Consideradas", "Saldo Dia", "Observacao"]];
+  const linhas = [["Data", "Entrada", "Saida Almoco", "Retorno Almoco", "Saida Final", "Horas Trabalhadas", "Tipo Abono", "Horas Abonadas", "Horas Consideradas", "Saldo Dia", "Status", "Observacao"]];
   registros.forEach(reg => {
     const trabalhadas = calcularHorasDia(reg);
     const consideradas = calcularConsideradas(reg, trabalhadas);
     const saldo = calcularSaldoDia(consideradas);
-    linhas.push([reg.data, reg.entrada, reg.saidaAlmoco, reg.retornoAlmoco, reg.saidaFinal, trabalhadas === null ? "" : formatarHHMM(trabalhadas), reg.tipoAbono || "nenhum", reg.horasAbonadas || "00:00", formatarHHMM(consideradas), saldo === null ? "" : formatarSaldo(saldo), (reg.obs || "").replaceAll(";", ",")]);
+    linhas.push([reg.data, reg.entrada, reg.saidaAlmoco, reg.retornoAlmoco, reg.saidaFinal, trabalhadas === null ? "" : formatarHHMM(trabalhadas), reg.tipoAbono || "nenhum", reg.horasAbonadas || "00:00", formatarHHMM(consideradas), saldo === null ? "" : formatarSaldo(saldo), validarRegistro(reg), (reg.obs || "").replaceAll(";", ",")]);
   });
-  const csv = linhas.map(linha => linha.join(";")).join("\n");
+  const csv = linhas.map(linha => linha.join(";")).join("
+");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
