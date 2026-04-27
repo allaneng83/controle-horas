@@ -1,1 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Horas</title>
 
+<style>
+body { font-family: Arial; background:#f4f4f4; padding:20px; }
+button { padding:10px; margin:10px 0; cursor:pointer; }
+table { width:100%; background:#fff; border-collapse: collapse; }
+th, td { padding:10px; border:1px solid #ccc; text-align:center; }
+input { padding:6px; }
+#saldoGeral { font-size:22px; font-weight:bold; margin:15px 0; }
+</style>
+</head>
+
+<body>
+
+<h2>Controle de Horas</h2>
+
+<div id="saldoGeral">Saldo geral: 0 min</div>
+
+<button onclick="addRow()">Adicionar Dia</button>
+
+<table id="table">
+<tr>
+<th>Data</th>
+<th>Entrada</th>
+<th>Saída Almoço</th>
+<th>Retorno</th>
+<th>Saída Final</th>
+<th>Horas</th>
+<th>Saldo</th>
+</tr>
+</table>
+
+<script>
+const jornada = 480;
+let saldos = [];
+
+function addRow() {
+  const table = document.getElementById("table");
+  const row = table.insertRow();
+
+  const index = saldos.length;
+  saldos.push(0);
+
+  row.innerHTML = `
+    <td><input type="date"></td>
+    <td><input type="time" value="07:30"></td>
+    <td><input type="time" value="11:30"></td>
+    <td><input type="time" value="12:30"></td>
+    <td><input type="time" value="17:30"></td>
+    <td class="horas">8h00</td>
+    <td class="saldo">0 min</td>
+  `;
+
+  row.dataset.index = index;
+
+  row.querySelectorAll("input").forEach(inp => {
+    inp.onchange = () => calcular(row);
+  });
+
+  calcular(row);
+}
+
+function calcular(row) {
+  const inputs = row.querySelectorAll("input");
+  const valores = [...inputs].map(i => i.value);
+
+  if (valores.includes("")) return;
+
+  const minutos = valores.slice(1).map(v => {
+    const [h,m] = v.split(":");
+    return (+h)*60 + (+m);
+  });
+
+  const total = (minutos[1] - minutos[0]) + (minutos[3] - minutos[2]);
+  const diff = total - jornada;
+
+  let saldo = 0;
+
+  if (total >= 470 && total <= 490) {
+    saldo = 0;
+  } else if (diff > 60) {
+    saldo = 60;
+  } else {
+    saldo = diff;
+  }
+
+  saldos[row.dataset.index] = saldo;
+
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+
+  row.querySelector(".horas").innerText = `${h}h${String(m).padStart(2,"0")}`;
+  row.querySelector(".saldo").innerText = `${saldo} min`;
+
+  atualizarSaldoGeral();
+}
+
+function atualizarSaldoGeral() {
+  const total = saldos.reduce((a,b) => a + b, 0);
+  document.getElementById("saldoGeral").innerText = `Saldo geral: ${total} min`;
+}
+
+addRow();
+</script>
+
+</body>
+</html>
